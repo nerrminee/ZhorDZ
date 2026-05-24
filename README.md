@@ -15,3 +15,13 @@ The React Compiler is not enabled on this template because of its impact on dev 
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
 "# ZhorDZ" 
+
+## Admin Panel
+
+An `AdminPanel` component is available at `src/components/AdminPanel.jsx` to manage products (upload image + metadata) and publish/unpublish items. See `docs/firebase_admin_integration.md` for integration details and recommended security rules.
+
+Usage:
+
+1. Ensure Firebase is configured in `src/config/firebase.js`.
+2. Import and mount the component in an admin route, e.g. `src/pages/Admin.jsx` or a dedicated admin page.
+
