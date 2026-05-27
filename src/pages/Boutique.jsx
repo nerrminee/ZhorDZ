@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useContext } from 'react'
+import { useEffect, useState, useContext } from 'react'
 import '../App.css'
-import { getProducts, subscribeProducts, updateProduct } from '../services/products'
+import { getProducts, subscribeProducts, updateProduct, createProductSlug } from '../services/products'
 import { AuthContext } from '../context/AuthContext'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 
@@ -78,15 +78,20 @@ function Boutique() {
               </article>
             ))
           ) : (
-            visibleProducts.map((p, index) => (
+            visibleProducts.map((p, index) => {
+              const productUrl = `/en/product/${encodeURIComponent(p.slug || createProductSlug(p.name) || p.id)}`
+
+              return (
               <article className="shop-card" key={p.id || index} style={{ animationDelay: `${index * 80}ms` }}>
-                <div className="shop-card-image">
+                <a className="shop-card-image shop-card-link" href={productUrl}>
                   {p.imageUrl ? (
                     <img src={p.imageUrl} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : null}
-                </div>
+                </a>
                 <div className="shop-card-body">
-                  <h2>{p.name}</h2>
+                  <h2>
+                    <a className="product-title-link" href={productUrl}>{p.name}</a>
+                  </h2>
                   <p>{p.description}</p>
                   <div className="shop-card-meta">
                     <span>{p.price ? `€${p.price}` : ''}</span>
@@ -102,13 +107,14 @@ function Boutique() {
                       {isAuthenticated && !p.isPublished ? (
                         <button className="shop-card-btn" onClick={() => handlePublish(p.id)}>Publier</button>
                       ) : (
-                        <button className="shop-card-btn">Voir</button>
+                        <a className="shop-card-btn" href={productUrl}>Voir</a>
                       )}
                     </div>
                   </div>
                 </div>
               </article>
-            ))
+              )
+            })
           )}
         </div>
       </div>

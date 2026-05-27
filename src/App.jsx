@@ -5,6 +5,7 @@ import AdminLogin from './pages/AdminLogin'
 import Boutique from './pages/Boutique'
 import Contact from './pages/Contact'
 import Liked from './pages/Liked'
+import ProductDetail from './pages/ProductDetail'
 
 const navItems = [
   { label: 'Acceuil', href: '/' },
@@ -18,6 +19,11 @@ const navItems = [
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [path, setPath] = useState(window.location.pathname)
+  const productSlug = path.startsWith('/en/product/')
+    ? path.replace('/en/product/', '')
+    : path.startsWith('/product/')
+      ? path.replace('/product/', '')
+      : ''
 
   useEffect(() => {
     function handlePopState() {
@@ -77,7 +83,9 @@ function App() {
             </div>
           </header>
 
-          {path === '/boutique' ? (
+          {productSlug ? (
+            <ProductDetail slug={productSlug} />
+          ) : path === '/boutique' ? (
             <Boutique />
           ) : path === '/liked' ? (
             <Liked />

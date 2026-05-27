@@ -4,6 +4,16 @@ import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebas
 
 const PRODUCTS_COLL = 'products'
 
+export function createProductSlug(name = '') {
+  return String(name)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 export async function uploadImage(file, onProgress) {
   if (!isFirebaseConfigured) throw new Error('Firebase not configured')
   if (!file) throw new Error('No file provided for upload')
@@ -40,6 +50,11 @@ export async function addProduct(productData) {
   const {
     name,
     description,
+    detailDescription,
+    category,
+    sku,
+    fabric,
+    care,
     price,
     sizes = [],
     colors = [],
@@ -68,7 +83,13 @@ export async function addProduct(productData) {
 
   const payload = {
     name: (name || '').trim(),
+    slug: createProductSlug(name),
     description: (description || '').trim(),
+    detailDescription: (detailDescription || '').trim(),
+    category: (category || '').trim(),
+    sku: (sku || '').trim(),
+    fabric: (fabric || '').trim(),
+    care: (care || '').trim(),
     price: Number(price) || 0,
     sizes: preparedSizes,
     colors: preparedColors,
@@ -91,6 +112,12 @@ export async function getProducts() {
       id: d.id,
       name: data.name || data.title || '',
       description: data.description || '',
+      detailDescription: data.detailDescription || data.details || '',
+      category: data.category || '',
+      sku: data.sku || '',
+      fabric: data.fabric || '',
+      care: data.care || '',
+      slug: data.slug || createProductSlug(data.name || data.title || ''),
       price: data.price || 0,
       imageUrl: data.imageUrl || data.image_url || null,
       image_url: data.image_url || data.imageUrl || null,
@@ -114,6 +141,12 @@ export function subscribeProducts(cb) {
         id: d.id,
         name: data.name || data.title || '',
         description: data.description || '',
+        detailDescription: data.detailDescription || data.details || '',
+        category: data.category || '',
+        sku: data.sku || '',
+        fabric: data.fabric || '',
+        care: data.care || '',
+        slug: data.slug || createProductSlug(data.name || data.title || ''),
         price: data.price || 0,
         imageUrl: data.imageUrl || data.image_url || null,
         image_url: data.image_url || data.imageUrl || null,
@@ -139,6 +172,10 @@ export async function updateProduct(id, updates = {}) {
 
   if (price !== undefined) {
     toUpdate.price = Number(price) || 0
+  }
+
+  if (typeof toUpdate.name === 'string') {
+    toUpdate.slug = createProductSlug(toUpdate.name)
   }
 
   if (file) {
