@@ -1,22 +1,15 @@
 import React, { useState, useEffect } from 'react'
-import { db, storage } from '../firebase'
 import './AdminPanel.css'
-import {
-  collection,
-  addDoc,
-  serverTimestamp,
-  onSnapshot,
-  doc,
-  deleteDoc,
-  query,
-  orderBy,
-} from 'firebase/firestore'
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
+import { db } from '../firebase'
+import { collection, doc, deleteDoc, onSnapshot, query, orderBy } from 'firebase/firestore'
+import { addProduct } from '../services/products'
 
 export default function AdminPanel() {
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [description, setDescription] = useState('')
+  const [sizesInput, setSizesInput] = useState('')
+  const [colorsInput, setColorsInput] = useState('')
   const [image, setImage] = useState(null)
 
   const [imagePreview, setImagePreview] = useState(null)
@@ -64,66 +57,58 @@ export default function AdminPanel() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
     if (!name.trim() || !price || !description.trim()) {
-      showAlert('error', 'All text fields are required.')
+      showAlert('error', 'Name, price, and description are required.')
       return
     }
+
     if (!image) {
       showAlert('error', 'Please upload a product image.')
       return
     }
+
     setIsSubmitting(true)
     setUploadProgress(0)
+
     try {
-      const storageRef = ref(storage, `products/${Date.now()}_${image.name}`)
-      const uploadTask = uploadBytesResumable(storageRef, image)
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)
-          setUploadProgress(progress)
-        },
-        (error) => {
-          console.error('Upload error:', error)
-          showAlert('error', `Image upload failed: ${error.message}`)
-          setIsSubmitting(false)
-        },
-        async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref)
-          await addDoc(collection(db, 'products'), {
-            name: name.trim(),
-            price: parseFloat(price),
-            description: description.trim(),
-            imageUrl: downloadURL,
-            createdAt: serverTimestamp(),
-            isPublished: true,
-          })
-          setName('')
-          setPrice('')
-          setDescription('')
-          setImage(null)
-          setImagePreview(null)
-          setUploadProgress(0)
-          setIsSubmitting(false)
-          showAlert('success', '🎉 Product successfully published to your store!')
-        }
-      )
+      await addProduct({
+        name,
+        price,
+        description,
+        sizes: sizesInput,
+        colors: colorsInput,
+        file: image,
+        onUploadProgress: setUploadProgress,
+        isPublished: true,
+      })
+
+      setName('')
+      setPrice('')
+      setDescription('')
+      setSizesInput('')
+      setColorsInput('')
+      setImage(null)
+      setImagePreview(null)
+      setUploadProgress(0)
+      showAlert('success', '🎉 Product saved to Firestore successfully.')
     } catch (error) {
-      console.error('Database save error:', error)
+      console.error('Failed to save product:', error)
       showAlert('error', `Failed to save product: ${error.message}`)
+    } finally {
       setIsSubmitting(false)
     }
   }
 
   const handleDelete = async (productId) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        await deleteDoc(doc(db, 'products', productId))
-        showAlert('success', 'Product deleted successfully.')
-      } catch (error) {
-        console.error('Error deleting product:', error)
-        showAlert('error', `Failed to delete product: ${error.message}`)
-      }
+    if (!window.confirm('Are you sure you want to delete this product?')) return
+
+    try {
+      await deleteDoc(doc(db, 'products', productId))
+      showAlert('success', 'Product deleted successfully.')
+    } catch (error) {
+      console.error('Error deleting product:', error)
+      showAlert('error', `Failed to delete product: ${error.message}`)
     }
   }
 
@@ -134,8 +119,9 @@ export default function AdminPanel() {
           <span className="logo-icon">🛍️</span>
           <h1>Store Console</h1>
         </div>
-        <p className="subtitle">Publish and manage your store's catalog</p>
+        <p className="subtitle">Publish and manage your store catalog</p>
       </header>
+
       <div className="admin-grid">
         <section className="form-card">
           <h2>Publish New Product</h2>
@@ -143,22 +129,71 @@ export default function AdminPanel() {
           <form onSubmit={handleSubmit} className="admin-form">
             <div className="form-group">
               <label htmlFor="product-name">Product Name</label>
-              <input id="product-name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Wireless Noise-Cancelling Headphones" required />
+              <input
+                id="product-name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Cashmere Scented Candle"
+                required
+              />
             </div>
+
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="product-price">Price ($)</label>
-                <input id="product-price" type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="99.99" required />
+                <label htmlFor="product-price">Price (€)</label>
+                <input
+                  id="product-price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="49.90"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="product-sizes">Sizes</label>
+                <input
+                  id="product-sizes"
+                  type="text"
+                  value={sizesInput}
+                  onChange={(e) => setSizesInput(e.target.value)}
+                  placeholder="S, M, L"
+                />
               </div>
             </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="product-colors">Colors</label>
+                <input
+                  id="product-colors"
+                  type="text"
+                  value={colorsInput}
+                  onChange={(e) => setColorsInput(e.target.value)}
+                  placeholder="Beige, Gold"
+                />
+              </div>
+            </div>
+
             <div className="form-group">
               <label htmlFor="product-desc">Description</label>
-              <textarea id="product-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Write a compelling description for this product..." rows="4" required></textarea>
+              <textarea
+                id="product-desc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe the product features, texture, or mood."
+                rows="4"
+                required
+              />
             </div>
+
             <div className="form-group">
-              <label>Product Image</label>
+              <label htmlFor="file-upload">Product Image</label>
               <div className={`upload-zone ${imagePreview ? 'has-preview' : ''}`}>
-                <input type="file" id="file-upload" accept="image/*" onChange={handleImageChange} className="file-input-hidden" />
+                <input id="file-upload" type="file" accept="image/*" onChange={handleImageChange} className="file-input-hidden" />
                 <label htmlFor="file-upload" className="upload-label">
                   {imagePreview ? (
                     <div className="image-preview-container">
@@ -168,40 +203,50 @@ export default function AdminPanel() {
                   ) : (
                     <div className="upload-placeholder">
                       <span className="upload-icon">📸</span>
-                      <span className="upload-text">Drag & drop or click to upload image</span>
-                      <span className="upload-hint">PNG, JPG, or WebP format</span>
+                      <span className="upload-text">Click to upload an image</span>
+                      <span className="upload-hint">PNG, JPG, or WebP</span>
                     </div>
                   )}
                 </label>
               </div>
             </div>
+
             {isSubmitting && uploadProgress > 0 && (
               <div className="progress-container">
                 <div className="progress-bar-wrapper">
-                  <div className="progress-bar-fill" style={{ width: `${uploadProgress}%` }}></div>
+                  <div className="progress-bar-fill" style={{ width: `${uploadProgress}%` }} />
                 </div>
-                <div className="progress-text">Uploading Image: {uploadProgress}%</div>
+                <div className="progress-text">Uploading: {uploadProgress}%</div>
               </div>
             )}
-            <button type="submit" className={`submit-btn ${isSubmitting ? 'loading' : ''}`} disabled={isSubmitting}>{isSubmitting ? 'Publishing Product...' : 'Publish Product'}</button>
+
+            <button type="submit" className={`submit-btn ${isSubmitting ? 'loading' : ''}`} disabled={isSubmitting}>
+              {isSubmitting ? 'Publishing...' : 'Publish Product'}
+            </button>
           </form>
         </section>
+
         <section className="inventory-card">
           <h2>Active Inventory ({products.length})</h2>
           {products.length === 0 ? (
-            <div className="empty-inventory"><span className="empty-icon">📦</span><p>No products published yet. Create one to populate your store!</p></div>
+            <div className="empty-inventory">
+              <span className="empty-icon">📦</span>
+              <p>No products published yet. Create one to populate your store!</p>
+            </div>
           ) : (
             <div className="products-grid">
               {products.map((product) => (
                 <div key={product.id} className="product-card">
                   <div className="card-image-wrapper">
-                    <img src={product.imageUrl} alt={product.name} className="card-image" />
+                    {product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="card-image" /> : null}
                   </div>
                   <div className="card-body">
                     <h3 className="card-title">{product.name || 'Untitled'}</h3>
                     <p className="card-price">€{(product.price || 0).toFixed(2)}</p>
                     <p className="card-description">{product.description}</p>
-                    <button onClick={() => handleDelete(product.id)} className="delete-btn" aria-label="Delete product">Delete</button>
+                    <button onClick={() => handleDelete(product.id)} className="delete-btn" aria-label="Delete product">
+                      Delete
+                    </button>
                   </div>
                 </div>
               ))}
