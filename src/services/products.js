@@ -57,8 +57,8 @@ export async function addProduct(productData) {
     : String(colors).split(',').map((item) => item.trim()).filter(Boolean)
 
   let imagePayload = {
-    image_url: null,
-    imageUrl: null,
+    image_url: productData.imageUrl || null,
+    imageUrl: productData.imageUrl || null,
     imagePath: null,
   }
 

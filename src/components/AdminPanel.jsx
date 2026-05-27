@@ -11,6 +11,7 @@ export default function AdminPanel() {
   const [sizesInput, setSizesInput] = useState('')
   const [colorsInput, setColorsInput] = useState('')
   const [image, setImage] = useState(null)
+  const [imageUrlInput, setImageUrlInput] = useState('')
 
   const [imagePreview, setImagePreview] = useState(null)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -44,6 +45,7 @@ export default function AdminPanel() {
         return
       }
       setImage(file)
+      setImageUrlInput('')
       const reader = new FileReader()
       reader.onloadend = () => setImagePreview(reader.result)
       reader.readAsDataURL(file)
@@ -63,8 +65,8 @@ export default function AdminPanel() {
       return
     }
 
-    if (!image) {
-      showAlert('error', 'Please upload a product image.')
+    if (!image && !imageUrlInput.trim()) {
+      showAlert('error', 'Please upload an image or paste a web image link.')
       return
     }
 
@@ -79,6 +81,7 @@ export default function AdminPanel() {
         sizes: sizesInput,
         colors: colorsInput,
         file: image,
+        imageUrl: imageUrlInput.trim(),
         onUploadProgress: setUploadProgress,
         isPublished: true,
       })
@@ -89,6 +92,7 @@ export default function AdminPanel() {
       setSizesInput('')
       setColorsInput('')
       setImage(null)
+      setImageUrlInput('')
       setImagePreview(null)
       setUploadProgress(0)
       showAlert('success', '🎉 Product saved to Firestore successfully.')
@@ -211,12 +215,34 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            {isSubmitting && uploadProgress > 0 && (
+            <div className="form-group">
+              <label htmlFor="product-image-url">Or Paste Image URL</label>
+              <input
+                id="product-image-url"
+                type="text"
+                value={imageUrlInput}
+                onChange={(e) => {
+                  const url = e.target.value
+                  setImageUrlInput(url)
+                  if (url.trim()) {
+                    setImagePreview(url.trim())
+                    setImage(null) // Reset local file upload
+                  } else {
+                    setImagePreview(null)
+                  }
+                }}
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
+
+            {isSubmitting && (
               <div className="progress-container">
                 <div className="progress-bar-wrapper">
                   <div className="progress-bar-fill" style={{ width: `${uploadProgress}%` }} />
                 </div>
-                <div className="progress-text">Uploading: {uploadProgress}%</div>
+                <div className="progress-text">
+                  {uploadProgress === 0 ? 'Connecting to Firebase...' : `Uploading: ${uploadProgress}%`}
+                </div>
               </div>
             )}
 
