@@ -75,7 +75,7 @@
   }
 }
 /* Cards Styling (Glassmorphism) */
-.form-card, .inventory-card {
+.form-card, .inventory-card, .orders-card {
   background: var(--bg-surface);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -85,7 +85,7 @@
   box-shadow: var(--shadow-neon);
   animation: fadeInUp 1s ease-out;
 }
-.form-card h2, .inventory-card h2 {
+.form-card h2, .inventory-card h2, .orders-card h2 {
   font-size: 1.5rem;
   font-weight: 700;
   margin-top: 0;
@@ -94,7 +94,7 @@
   position: relative;
   display: inline-block;
 }
-.form-card h2::after, .inventory-card h2::after {
+.form-card h2::after, .inventory-card h2::after, .orders-card h2::after {
   content: '';
   position: absolute;
   bottom: -6px;
@@ -155,6 +155,150 @@ select option {
 textarea {
   resize: vertical;
 }
+
+.orders-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+}
+
+.orders-card-header h2 {
+  margin-bottom: 0;
+}
+
+.orders-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.order-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.order-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.order-card h3,
+.order-card h4 {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.order-card p {
+  margin: 0.3rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.order-items {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.order-item {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.order-thumb {
+  width: 54px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #f2ede7;
+}
+
+.order-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.order-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.order-meta span {
+  border-radius: 999px;
+  background: rgba(123, 103, 89, 0.1);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  padding: 0.35rem 0.6rem;
+}
+
+.option-builder {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.option-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.option-entry button,
+.option-chip-list button {
+  border: 1px solid rgba(113, 107, 99, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--text-primary);
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.option-entry button {
+  min-height: 46px;
+  padding: 0 0.9rem;
+  white-space: nowrap;
+}
+
+.option-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.option-chip-list button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 34px;
+  padding: 0.35rem 0.65rem;
+}
+
+.option-chip-list span {
+  font-size: 0.75rem;
+  opacity: 0.72;
+}
+
+.collection-entry {
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 620px) {
+  .option-entry {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Image Upload Area */
 .upload-zone {
   border: 2px dashed rgba(138, 43, 226, 0.3);
@@ -202,11 +346,20 @@ textarea {
   color: var(--text-secondary);
 }
 /* Upload Preview */
+.image-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
 .image-preview-container {
   position: relative;
   width: 100%;
-  height: 200px;
+  height: 160px;
   background: #000;
+  border-radius: 12px;
+  overflow: hidden;
 }
 .image-preview {
   width: 100%;
@@ -354,6 +507,19 @@ textarea {
   height: 180px;
   background-color: #f2ede7;
   overflow: hidden;
+}
+
+.image-count {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  border-radius: 999px;
+  background: rgba(10, 5, 22, 0.72);
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 0.35rem 0.65rem;
+  backdrop-filter: blur(8px);
 }
 .card-image {
   width: 100%;

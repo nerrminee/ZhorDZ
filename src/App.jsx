@@ -3,6 +3,8 @@ import './App.css'
 import Admin from './pages/Admin'
 import AdminLogin from './pages/AdminLogin'
 import Boutique from './pages/Boutique'
+import Cart from './pages/Cart'
+import Checkout from './pages/Checkout'
 import Contact from './pages/Contact'
 import Liked from './pages/Liked'
 import ProductDetail from './pages/ProductDetail'
@@ -87,6 +89,10 @@ function App() {
             <ProductDetail slug={productSlug} />
           ) : path === '/boutique' ? (
             <Boutique />
+          ) : path === '/panier' ? (
+            <Cart />
+          ) : path === '/checkout' ? (
+            <Checkout />
           ) : path === '/liked' ? (
             <Liked />
           ) : path === '/contact' ? (

@@ -3,14 +3,18 @@ import '../App.css'
 import { AuthContext } from '../context/AuthContext'
 import { getProducts, subscribeProducts, createProductSlug } from '../services/products'
 import { useLocalStorage } from '../hooks/useLocalStorage'
+import { getColorValue, getProductImages } from '../utils/productOptions'
+import { CART_STORAGE_KEY, createCartItem, writeCheckout } from '../utils/cart'
 
 function ProductDetail({ slug }) {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedSize, setSelectedSize] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
+  const [selectedImage, setSelectedImage] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [likedIds, setLikedIds] = useLocalStorage('zhordz-liked', [])
+  const [, setCartItems] = useLocalStorage(CART_STORAGE_KEY, [])
   const { isAuthenticated } = useContext(AuthContext)
 
   useEffect(() => {
@@ -69,8 +73,25 @@ function ProductDetail({ slug }) {
   }
 
   const hasDetails = product.detailDescription || product.fabric || product.care || product.category || product.sku
-  const activeColor = selectedColor || product.colors?.[0] || ''
-  const activeSize = selectedSize || product.sizes?.[0] || ''
+  const productImages = getProductImages(product)
+  const activeColor = product.colors?.includes(selectedColor) ? selectedColor : product.colors?.[0] || ''
+  const activeSize = product.sizes?.includes(selectedSize) ? selectedSize : product.sizes?.[0] || ''
+  const activeImage = productImages.includes(selectedImage) ? selectedImage : productImages[0] || ''
+
+  const selectedItem = () => createCartItem(product, {
+    color: activeColor,
+    size: activeSize,
+    quantity,
+  })
+
+  const addToCart = () => {
+    setCartItems((current) => [...current, selectedItem()])
+  }
+
+  const buyNow = () => {
+    writeCheckout([selectedItem()], 'direct')
+    window.location.assign('/checkout')
+  }
 
   return (
     <main className="product-detail-page" aria-label="Product detail page">
@@ -84,8 +105,25 @@ function ProductDetail({ slug }) {
         </nav>
 
         <section className="product-detail-layout">
-          <div className="product-media">
-            {product.imageUrl ? <img src={product.imageUrl} alt={product.name} /> : null}
+          <div className="product-gallery">
+            <div className="product-media">
+              {activeImage ? <img src={activeImage} alt={product.name} /> : null}
+            </div>
+            {productImages.length > 1 ? (
+              <div className="product-thumbnails" aria-label="Product images">
+                {productImages.map((image, index) => (
+                  <button
+                    type="button"
+                    key={image}
+                    className={(activeImage || productImages[0]) === image ? 'is-selected' : ''}
+                    onClick={() => setSelectedImage(image)}
+                    aria-label={`View image ${index + 1}`}
+                  >
+                    <img src={image} alt="" />
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <div className="product-info-panel">
@@ -102,10 +140,13 @@ function ProductDetail({ slug }) {
                     <button
                       type="button"
                       key={color}
-                      className={activeColor === color ? 'is-selected' : ''}
+                      className={`color-option ${activeColor === color ? 'is-selected' : ''}`}
+                      style={{ '--swatch-color': getColorValue(color) }}
                       onClick={() => setSelectedColor(color)}
+                      aria-label={`Selectionner ${color}`}
+                      title={color}
                     >
-                      {color}
+                      <span>{color}</span>
                     </button>
                   ))}
                 </div>
@@ -136,7 +177,8 @@ function ProductDetail({ slug }) {
                 <span>{quantity}</span>
                 <button type="button" onClick={() => setQuantity((value) => value + 1)}>+</button>
               </div>
-              <button type="button" className="add-cart-btn">Ajouter au panier</button>
+              <button type="button" className="add-cart-btn" onClick={addToCart}>Ajouter au panier</button>
+              <button type="button" className="add-cart-btn buy-now-btn" onClick={buyNow}>Buy now</button>
               <button
                 type="button"
                 className={`like-toggle product-like ${likedIds.includes(product.id) ? 'liked' : ''}`}

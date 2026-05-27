@@ -44,6 +44,54 @@ export async function uploadImage(file, onProgress) {
   })
 }
 
+function prepareList(value = []) {
+  if (Array.isArray(value)) {
+    return value.filter(Boolean).map((item) => String(item).trim()).filter(Boolean)
+  }
+
+  return String(value)
+    .split(/[\n,]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function normalizeImages(data = {}) {
+  const images = Array.isArray(data.images)
+    ? data.images
+        .map((image) => {
+          if (typeof image === 'string') return { url: image, path: null }
+          return { url: image.url || image.imageUrl || image.image_url || '', path: image.path || image.imagePath || null }
+        })
+        .filter((image) => image.url)
+    : []
+
+  const fallbackUrl = data.imageUrl || data.image_url || null
+  const fallbackPath = data.imagePath || null
+
+  if (fallbackUrl && !images.some((image) => image.url === fallbackUrl)) {
+    images.unshift({ url: fallbackUrl, path: fallbackPath })
+  }
+
+  return images
+}
+
+async function uploadImages(files = [], onProgress) {
+  const uploadFiles = Array.isArray(files) ? files.filter(Boolean) : files ? [files] : []
+  const uploaded = []
+
+  for (let index = 0; index < uploadFiles.length; index += 1) {
+    const imagePayload = await uploadImage(uploadFiles[index], (progress) => {
+      if (!onProgress) return
+      const totalProgress = Math.round(((index + progress / 100) / uploadFiles.length) * 100)
+      onProgress(totalProgress)
+    })
+
+    uploaded.push({ url: imagePayload.imageUrl, path: imagePayload.imagePath })
+  }
+
+  return uploaded
+}
+
 export async function addProduct(productData) {
   if (!isFirebaseConfigured) throw new Error('Firebase not configured')
 
@@ -59,27 +107,26 @@ export async function addProduct(productData) {
     sizes = [],
     colors = [],
     file,
+    files = [],
+    imageUrls = [],
     isPublished = true,
     onUploadProgress,
   } = productData
 
-  const preparedSizes = Array.isArray(sizes)
-    ? sizes.filter(Boolean).map((item) => item.trim())
-    : String(sizes).split(',').map((item) => item.trim()).filter(Boolean)
+  const preparedSizes = prepareList(sizes)
+  const preparedColors = prepareList(colors)
+  const preparedImageUrls = prepareList(imageUrls)
+  const uploadedImages = await uploadImages(files.length ? files : file ? [file] : [], onUploadProgress)
+  const images = [
+    ...uploadedImages,
+    ...preparedImageUrls.map((url) => ({ url, path: null })),
+  ]
 
-  const preparedColors = Array.isArray(colors)
-    ? colors.filter(Boolean).map((item) => item.trim())
-    : String(colors).split(',').map((item) => item.trim()).filter(Boolean)
-
-  let imagePayload = {
-    image_url: productData.imageUrl || null,
-    imageUrl: productData.imageUrl || null,
-    imagePath: null,
+  if (productData.imageUrl && !images.some((image) => image.url === productData.imageUrl)) {
+    images.push({ url: productData.imageUrl, path: null })
   }
 
-  if (file) {
-    imagePayload = await uploadImage(file, onUploadProgress)
-  }
+  const primaryImage = images[0] || { url: null, path: null }
 
   const payload = {
     name: (name || '').trim(),
@@ -93,9 +140,12 @@ export async function addProduct(productData) {
     price: Number(price) || 0,
     sizes: preparedSizes,
     colors: preparedColors,
+    images,
+    image_url: primaryImage.url,
+    imageUrl: primaryImage.url,
+    imagePath: primaryImage.path,
     createdAt: serverTimestamp(),
     isPublished: !!isPublished,
-    ...imagePayload,
   }
 
   const docRef = await addDoc(collection(db, PRODUCTS_COLL), payload)
@@ -110,6 +160,7 @@ export async function getProducts() {
     const data = d.data()
     return {
       id: d.id,
+      ...data,
       name: data.name || data.title || '',
       description: data.description || '',
       detailDescription: data.detailDescription || data.details || '',
@@ -122,11 +173,11 @@ export async function getProducts() {
       imageUrl: data.imageUrl || data.image_url || null,
       image_url: data.image_url || data.imageUrl || null,
       imagePath: data.imagePath || null,
+      images: normalizeImages(data),
       createdAt: data.createdAt || null,
       sizes: Array.isArray(data.sizes) ? data.sizes : [],
       colors: Array.isArray(data.colors) ? data.colors : [],
       isPublished: data.isPublished ?? data.published ?? false,
-      ...data,
     }
   })
 }
@@ -139,6 +190,7 @@ export function subscribeProducts(cb) {
       const data = d.data()
       return {
         id: d.id,
+        ...data,
         name: data.name || data.title || '',
         description: data.description || '',
         detailDescription: data.detailDescription || data.details || '',
@@ -151,11 +203,11 @@ export function subscribeProducts(cb) {
         imageUrl: data.imageUrl || data.image_url || null,
         image_url: data.image_url || data.imageUrl || null,
         imagePath: data.imagePath || null,
+        images: normalizeImages(data),
         createdAt: data.createdAt || null,
         sizes: Array.isArray(data.sizes) ? data.sizes : [],
         colors: Array.isArray(data.colors) ? data.colors : [],
         isPublished: data.isPublished ?? data.published ?? false,
-        ...data,
       }
     })
     cb(docs)
@@ -167,7 +219,7 @@ export async function updateProduct(id, updates = {}) {
   if (!isFirebaseConfigured) throw new Error('Firebase not configured')
 
   const docRef = doc(db, PRODUCTS_COLL, id)
-  const { file, removeImage, price } = updates
+  const { file, files = [], removeImage, price } = updates
   const toUpdate = { ...updates }
 
   if (price !== undefined) {
@@ -183,16 +235,36 @@ export async function updateProduct(id, updates = {}) {
     toUpdate.imageUrl = imagePayload.imageUrl
     toUpdate.image_url = imagePayload.image_url
     toUpdate.imagePath = imagePayload.imagePath
+    toUpdate.images = [{ url: imagePayload.imageUrl, path: imagePayload.imagePath }]
+  }
+
+  if (files.length) {
+    const uploadedImages = await uploadImages(files)
+    toUpdate.images = uploadedImages
+    toUpdate.imageUrl = uploadedImages[0]?.url || null
+    toUpdate.image_url = uploadedImages[0]?.url || null
+    toUpdate.imagePath = uploadedImages[0]?.path || null
+  }
+
+  if (toUpdate.imageUrls !== undefined) {
+    const imageUrls = prepareList(toUpdate.imageUrls)
+    toUpdate.images = imageUrls.map((url) => ({ url, path: null }))
+    toUpdate.imageUrl = imageUrls[0] || null
+    toUpdate.image_url = imageUrls[0] || null
+    toUpdate.imagePath = null
   }
 
   if (removeImage) {
     toUpdate.imageUrl = null
     toUpdate.image_url = null
     toUpdate.imagePath = null
+    toUpdate.images = []
   }
 
   delete toUpdate.file
+  delete toUpdate.files
   delete toUpdate.removeImage
+  delete toUpdate.imageUrls
 
   await updateDoc(docRef, toUpdate)
   return { id, ...toUpdate }
@@ -200,9 +272,11 @@ export async function updateProduct(id, updates = {}) {
 
 export async function deleteProduct(id, imagePath) {
   if (!isFirebaseConfigured) throw new Error('Firebase not configured')
-  if (imagePath) {
+  const imagePaths = Array.isArray(imagePath) ? imagePath.filter(Boolean) : imagePath ? [imagePath] : []
+
+  for (const path of imagePaths) {
     try {
-      const storageRef = ref(storage, imagePath)
+      const storageRef = ref(storage, path)
       await deleteObject(storageRef)
     } catch (e) {
       console.warn('deleteProduct: failed deleting image', e.message)

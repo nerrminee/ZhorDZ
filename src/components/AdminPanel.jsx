@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import './AdminPanel.css'
-import { db } from '../firebase'
-import { collection, doc, deleteDoc, onSnapshot, query, orderBy } from 'firebase/firestore'
-import { addProduct, updateProduct } from '../services/products'
+import { addProduct, deleteProduct, subscribeProducts, updateProduct } from '../services/products'
+import { subscribeOrders } from '../services/orders'
+import { useLocalStorage } from '../hooks/useLocalStorage'
+import { formatPrice } from '../utils/cart'
+
+const DEFAULT_COLLECTIONS = ['Ensembles', 'Robes', 'Parfums', 'Accessoires']
 
 export default function AdminPanel() {
   const [name, setName] = useState('')
@@ -13,50 +16,85 @@ export default function AdminPanel() {
   const [sku, setSku] = useState('')
   const [fabric, setFabric] = useState('')
   const [care, setCare] = useState('')
-  const [sizesInput, setSizesInput] = useState('')
-  const [colorsInput, setColorsInput] = useState('')
-  const [image, setImage] = useState(null)
+  const [sizes, setSizes] = useState([])
+  const [colors, setColors] = useState([])
+  const [sizeDraft, setSizeDraft] = useState('')
+  const [colorDraft, setColorDraft] = useState('')
+  const [newCollection, setNewCollection] = useState('')
+  const [customCollections, setCustomCollections] = useLocalStorage('zhordz-collections', DEFAULT_COLLECTIONS)
+  const [images, setImages] = useState([])
   const [imageUrlInput, setImageUrlInput] = useState('')
 
-  const [imagePreview, setImagePreview] = useState(null)
+  const [imagePreviews, setImagePreviews] = useState([])
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
 
   const [products, setProducts] = useState([])
+  const [orders, setOrders] = useState([])
+  const [isOrdersOpen, setIsOrdersOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editState, setEditState] = useState({})
 
   useEffect(() => {
-    if (!db) return
-    const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'))
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const productsData = []
-        snapshot.forEach((d) => productsData.push({ id: d.id, ...d.data() }))
-        setProducts(productsData)
-      },
-      (error) => {
-        console.error('Error fetching products: ', error)
-      }
-    )
+    const unsubscribe = subscribeProducts((list) => setProducts(list))
     return () => unsubscribe()
   }, [])
 
+  useEffect(() => {
+    const unsubscribe = subscribeOrders((list) => setOrders(list))
+    return () => unsubscribe()
+  }, [])
+
+  const collectionOptions = useMemo(() => {
+    const productCollections = products.map((product) => product.category).filter(Boolean)
+    return Array.from(new Set([...customCollections, ...productCollections])).sort((a, b) => a.localeCompare(b))
+  }, [customCollections, products])
+
+  const addListItem = (value, setter, resetter) => {
+    const prepared = value.trim()
+    if (!prepared) return
+    setter((current) => current.includes(prepared) ? current : [...current, prepared])
+    resetter('')
+  }
+
+  const removeListItem = (value, setter) => {
+    setter((current) => current.filter((item) => item !== value))
+  }
+
+  const handleDraftKeyDown = (event, value, setter, resetter) => {
+    if (event.key !== 'Enter') return
+    event.preventDefault()
+    addListItem(value, setter, resetter)
+  }
+
+  const handleAddCollection = () => {
+    const prepared = newCollection.trim()
+    if (!prepared) return
+    setCustomCollections((current) => current.includes(prepared) ? current : [...current, prepared])
+    setCategory(prepared)
+    setNewCollection('')
+  }
+
   const handleImageChange = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        showAlert('error', 'Please select a valid image file (PNG, JPG, WebP).')
-        return
-      }
-      setImage(file)
-      setImageUrlInput('')
-      const reader = new FileReader()
-      reader.onloadend = () => setImagePreview(reader.result)
-      reader.readAsDataURL(file)
+    const selectedFiles = Array.from(e.target.files || [])
+    if (!selectedFiles.length) return
+
+    if (selectedFiles.some((file) => !file.type.startsWith('image/'))) {
+      showAlert('error', 'Please select valid image files (PNG, JPG, WebP).')
+      return
     }
+
+    setImages(selectedFiles)
+    setImageUrlInput('')
+
+    Promise.all(
+      selectedFiles.map((file) => new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result)
+        reader.readAsDataURL(file)
+      }))
+    ).then((previews) => setImagePreviews(previews))
   }
 
   const showAlert = (type, text) => {
@@ -72,8 +110,8 @@ export default function AdminPanel() {
       return
     }
 
-    if (!image && !imageUrlInput.trim()) {
-      showAlert('error', 'Please upload an image or paste a web image link.')
+    if (images.length === 0 && !imageUrlInput.trim()) {
+      showAlert('error', 'Please upload at least one image or paste web image links.')
       return
     }
 
@@ -90,10 +128,10 @@ export default function AdminPanel() {
         sku,
         fabric,
         care,
-        sizes: sizesInput,
-        colors: colorsInput,
-        file: image,
-        imageUrl: imageUrlInput.trim(),
+        sizes,
+        colors,
+        files: images,
+        imageUrls: imageUrlInput,
         onUploadProgress: setUploadProgress,
         isPublished: true,
       })
@@ -106,11 +144,13 @@ export default function AdminPanel() {
       setSku('')
       setFabric('')
       setCare('')
-      setSizesInput('')
-      setColorsInput('')
-      setImage(null)
+      setSizes([])
+      setColors([])
+      setSizeDraft('')
+      setColorDraft('')
+      setImages([])
       setImageUrlInput('')
-      setImagePreview(null)
+      setImagePreviews([])
       setUploadProgress(0)
       showAlert('success', '🎉 Product saved to Firestore successfully.')
     } catch (error) {
@@ -125,7 +165,11 @@ export default function AdminPanel() {
     if (!window.confirm('Are you sure you want to delete this product?')) return
 
     try {
-      await deleteDoc(doc(db, 'products', productId))
+      const product = products.find((item) => item.id === productId)
+      const imagePaths = Array.isArray(product?.images)
+        ? product.images.map((image) => image.path).filter(Boolean)
+        : product?.imagePath
+      await deleteProduct(productId, imagePaths)
       showAlert('success', 'Product deleted successfully.')
     } catch (error) {
       console.error('Error deleting product:', error)
@@ -146,6 +190,9 @@ export default function AdminPanel() {
       care: product.care || '',
       sizes: Array.isArray(product.sizes) ? product.sizes.join(', ') : '',
       colors: Array.isArray(product.colors) ? product.colors.join(', ') : '',
+      imageUrls: Array.isArray(product.images)
+        ? product.images.map((image) => image.url).join('\n')
+        : product.imageUrl || '',
     })
   }
 
@@ -212,26 +259,56 @@ export default function AdminPanel() {
               </div>
               <div className="form-group">
                 <label htmlFor="product-sizes">Sizes</label>
-                <input
-                  id="product-sizes"
-                  type="text"
-                  value={sizesInput}
-                  onChange={(e) => setSizesInput(e.target.value)}
-                  placeholder="S, M, L"
-                />
+                <div className="option-builder">
+                  <div className="option-entry">
+                    <input
+                      id="product-sizes"
+                      type="text"
+                      value={sizeDraft}
+                      onChange={(e) => setSizeDraft(e.target.value)}
+                      onKeyDown={(e) => handleDraftKeyDown(e, sizeDraft, setSizes, setSizeDraft)}
+                      placeholder="S, M, L, 38..."
+                    />
+                    <button type="button" onClick={() => addListItem(sizeDraft, setSizes, setSizeDraft)}>Add size</button>
+                  </div>
+                  {sizes.length ? (
+                    <div className="option-chip-list" aria-label="Selected sizes">
+                      {sizes.map((size) => (
+                        <button type="button" key={size} onClick={() => removeListItem(size, setSizes)}>
+                          {size}<span aria-hidden="true">x</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
 
             <div className="form-row">
               <div className="form-group">
                 <label htmlFor="product-colors">Colors</label>
-                <input
-                  id="product-colors"
-                  type="text"
-                  value={colorsInput}
-                  onChange={(e) => setColorsInput(e.target.value)}
-                  placeholder="Beige, Gold"
-                />
+                <div className="option-builder">
+                  <div className="option-entry">
+                    <input
+                      id="product-colors"
+                      type="text"
+                      value={colorDraft}
+                      onChange={(e) => setColorDraft(e.target.value)}
+                      onKeyDown={(e) => handleDraftKeyDown(e, colorDraft, setColors, setColorDraft)}
+                      placeholder="Beige, Gold, #c5a34f..."
+                    />
+                    <button type="button" onClick={() => addListItem(colorDraft, setColors, setColorDraft)}>Add color</button>
+                  </div>
+                  {colors.length ? (
+                    <div className="option-chip-list" aria-label="Selected colors">
+                      {colors.map((color) => (
+                        <button type="button" key={color} onClick={() => removeListItem(color, setColors)}>
+                          {color}<span aria-hidden="true">x</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
 
@@ -260,14 +337,32 @@ export default function AdminPanel() {
 
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="product-category">Category</label>
-                <input
+                <label htmlFor="product-category">Collection</label>
+                <select
                   id="product-category"
-                  type="text"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  placeholder="Ensembles"
-                />
+                >
+                  <option value="">Choose collection</option>
+                  {collectionOptions.map((collection) => (
+                    <option key={collection} value={collection}>{collection}</option>
+                  ))}
+                </select>
+                <div className="option-entry collection-entry">
+                  <input
+                    type="text"
+                    value={newCollection}
+                    onChange={(e) => setNewCollection(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter') return
+                      e.preventDefault()
+                      handleAddCollection()
+                    }}
+                    placeholder="New collection"
+                    aria-label="New collection"
+                  />
+                  <button type="button" onClick={handleAddCollection}>Add collection</button>
+                </div>
               </div>
               <div className="form-group">
                 <label htmlFor="product-sku">Reference</label>
@@ -305,19 +400,23 @@ export default function AdminPanel() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="file-upload">Product Image</label>
-              <div className={`upload-zone ${imagePreview ? 'has-preview' : ''}`}>
-                <input id="file-upload" type="file" accept="image/*" onChange={handleImageChange} className="file-input-hidden" />
+              <label htmlFor="file-upload">Product Images</label>
+              <div className={`upload-zone ${imagePreviews.length ? 'has-preview' : ''}`}>
+                <input id="file-upload" type="file" accept="image/*" multiple onChange={handleImageChange} className="file-input-hidden" />
                 <label htmlFor="file-upload" className="upload-label">
-                  {imagePreview ? (
-                    <div className="image-preview-container">
-                      <img src={imagePreview} alt="Preview" className="image-preview" />
-                      <div className="upload-overlay"><span>Change Image</span></div>
+                  {imagePreviews.length ? (
+                    <div className="image-preview-grid">
+                      {imagePreviews.map((preview, index) => (
+                        <div className="image-preview-container" key={preview}>
+                          <img src={preview} alt={`Preview ${index + 1}`} className="image-preview" />
+                          <div className="upload-overlay"><span>Change Images</span></div>
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className="upload-placeholder">
                       <span className="upload-icon">📸</span>
-                      <span className="upload-text">Click to upload an image</span>
+                      <span className="upload-text">Click to upload images</span>
                       <span className="upload-hint">PNG, JPG, or WebP</span>
                     </div>
                   )}
@@ -326,22 +425,22 @@ export default function AdminPanel() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="product-image-url">Or Paste Image URL</label>
-              <input
+              <label htmlFor="product-image-url">Or Paste Image URLs</label>
+              <textarea
                 id="product-image-url"
-                type="text"
                 value={imageUrlInput}
                 onChange={(e) => {
                   const url = e.target.value
                   setImageUrlInput(url)
                   if (url.trim()) {
-                    setImagePreview(url.trim())
-                    setImage(null) // Reset local file upload
+                    setImagePreviews(url.split(/[\n,]+/).map((item) => item.trim()).filter(Boolean))
+                    setImages([])
                   } else {
-                    setImagePreview(null)
+                    setImagePreviews([])
                   }
                 }}
-                placeholder="https://example.com/image.jpg"
+                placeholder="https://example.com/front.jpg&#10;https://example.com/back.jpg"
+                rows="3"
               />
             </div>
 
@@ -362,6 +461,60 @@ export default function AdminPanel() {
           </form>
         </section>
 
+        <section className="orders-card">
+          <div className="orders-card-header">
+            <h2>Orders ({orders.length})</h2>
+            <button type="button" className="edit-btn" onClick={() => setIsOrdersOpen((open) => !open)}>
+              {isOrdersOpen ? 'Hide orders' : 'List of orders'}
+            </button>
+          </div>
+
+          {isOrdersOpen ? (
+            orders.length ? (
+              <div className="orders-list">
+                {orders.map((order) => (
+                  <article className="order-card" key={order.id}>
+                    <div className="order-card-top">
+                      <div>
+                        <h3>{order.customer?.lastName} {order.customer?.firstName}</h3>
+                        <p>{order.customer?.phone} - {order.customer?.wilaya}</p>
+                      </div>
+                      <strong>{formatPrice(order.total)}</strong>
+                    </div>
+                    <div className="order-items">
+                      {order.items?.map((item) => (
+                        <div className="order-item" key={item.cartId || item.productId}>
+                          <div className="order-thumb">
+                            {item.imageUrl ? <img src={item.imageUrl} alt={item.name} /> : null}
+                          </div>
+                          <div>
+                            <h4>{item.name}</h4>
+                            <p>
+                              Qty {item.quantity}
+                              {item.color ? ` / ${item.color}` : ''}
+                              {item.size ? ` / ${item.size}` : ''}
+                            </p>
+                            <span>{formatPrice(Number(item.price) * Number(item.quantity || 1))}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="order-meta">
+                      <span>Livraison: {formatPrice(order.deliveryPrice)}</span>
+                      <span>Cash on delivery</span>
+                      {order.customer?.note ? <span>Note: {order.customer.note}</span> : null}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-inventory">
+                <p>No orders yet.</p>
+              </div>
+            )
+          ) : null}
+        </section>
+
         <section className="inventory-card">
           <h2>Active Inventory ({products.length})</h2>
           {products.length === 0 ? (
@@ -374,7 +527,10 @@ export default function AdminPanel() {
               {products.map((product) => (
                 <div key={product.id} className="product-card">
                   <div className="card-image-wrapper">
-                    {product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="card-image" /> : null}
+                    {(product.images?.[0]?.url || product.imageUrl) ? (
+                      <img src={product.images?.[0]?.url || product.imageUrl} alt={product.name} className="card-image" />
+                    ) : null}
+                    {product.images?.length > 1 ? <span className="image-count">{product.images.length} images</span> : null}
                   </div>
                   <div className="card-body">
                     {editingId === product.id ? (
@@ -389,6 +545,7 @@ export default function AdminPanel() {
                         <input value={editState.care} onChange={(e) => handleEditChange('care', e.target.value)} aria-label="Product care" placeholder="Care" />
                         <input value={editState.sizes} onChange={(e) => handleEditChange('sizes', e.target.value)} aria-label="Product sizes" placeholder="Sizes" />
                         <input value={editState.colors} onChange={(e) => handleEditChange('colors', e.target.value)} aria-label="Product colors" placeholder="Colors" />
+                        <textarea value={editState.imageUrls} onChange={(e) => handleEditChange('imageUrls', e.target.value)} aria-label="Product image URLs" placeholder="Image URLs, one per line" />
                         <div className="inventory-edit-actions">
                           <button type="button" onClick={() => handleSaveEdit(product.id)} className="save-btn">Save</button>
                           <button type="button" onClick={() => setEditingId(null)} className="cancel-btn">Cancel</button>

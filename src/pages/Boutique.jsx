@@ -3,11 +3,14 @@ import '../App.css'
 import { getProducts, subscribeProducts, updateProduct, createProductSlug } from '../services/products'
 import { AuthContext } from '../context/AuthContext'
 import { useLocalStorage } from '../hooks/useLocalStorage'
+import { getColorValue, getProductImages } from '../utils/productOptions'
+import { createCartItem, writeCheckout } from '../utils/cart'
 
 function Boutique() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [likedIds, setLikedIds] = useLocalStorage('zhordz-liked', [])
+  const [selectedOptions, setSelectedOptions] = useState({})
 
   const toggleLike = (id) => {
     setLikedIds((current) =>
@@ -16,6 +19,16 @@ function Boutique() {
   }
 
   const isLiked = (id) => likedIds.includes(id)
+
+  const selectOption = (productId, field, value) => {
+    setSelectedOptions((current) => ({
+      ...current,
+      [productId]: {
+        ...(current[productId] || {}),
+        [field]: value,
+      },
+    }))
+  }
 
   useEffect(() => {
     let unsub
@@ -50,6 +63,11 @@ function Boutique() {
     }
   }
 
+  const buyProduct = (product, color, size) => {
+    writeCheckout([createCartItem(product, { color, size, quantity: 1 })], 'direct')
+    window.location.assign('/checkout')
+  }
+
   return (
     <main className="shop-preview boutique-page" aria-label="Boutique page">
       <div className="boutique-shell">
@@ -80,12 +98,16 @@ function Boutique() {
           ) : (
             visibleProducts.map((p, index) => {
               const productUrl = `/en/product/${encodeURIComponent(p.slug || createProductSlug(p.name) || p.id)}`
+              const productImages = getProductImages(p)
+              const selected = selectedOptions[p.id] || {}
+              const activeColor = selected.color || p.colors?.[0] || ''
+              const activeSize = selected.size || p.sizes?.[0] || ''
 
               return (
               <article className="shop-card" key={p.id || index} style={{ animationDelay: `${index * 80}ms` }}>
                 <a className="shop-card-image shop-card-link" href={productUrl}>
-                  {p.imageUrl ? (
-                    <img src={p.imageUrl} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {productImages[0] ? (
+                    <img src={productImages[0]} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : null}
                 </a>
                 <div className="shop-card-body">
@@ -93,6 +115,39 @@ function Boutique() {
                     <a className="product-title-link" href={productUrl}>{p.name}</a>
                   </h2>
                   <p>{p.description}</p>
+                  {(p.colors?.length || p.sizes?.length) ? (
+                    <div className="shop-card-options" aria-label="Product options">
+                      {p.colors?.length ? (
+                        <div className="shop-color-list" aria-label="Available colors">
+                          {p.colors.map((color) => (
+                            <button
+                              type="button"
+                              key={color}
+                              className={`color-swatch ${activeColor === color ? 'is-selected' : ''}`}
+                              style={{ '--swatch-color': getColorValue(color) }}
+                              aria-label={`Select ${color}`}
+                              title={color}
+                              onClick={() => selectOption(p.id, 'color', color)}
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+                      {p.sizes?.length ? (
+                        <div className="shop-size-list" aria-label="Available sizes">
+                          {p.sizes.map((size) => (
+                            <button
+                              type="button"
+                              key={size}
+                              className={activeSize === size ? 'is-selected' : ''}
+                              onClick={() => selectOption(p.id, 'size', size)}
+                            >
+                              {size}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className="shop-card-meta">
                     <span>{p.price ? `€${p.price}` : ''}</span>
                     <div className="shop-card-actions">
@@ -107,7 +162,10 @@ function Boutique() {
                       {isAuthenticated && !p.isPublished ? (
                         <button className="shop-card-btn" onClick={() => handlePublish(p.id)}>Publier</button>
                       ) : (
-                        <a className="shop-card-btn" href={productUrl}>Voir</a>
+                        <>
+                          <button className="shop-card-btn" type="button" onClick={() => buyProduct(p, activeColor, activeSize)}>Buy</button>
+                          <a className="shop-card-btn" href={productUrl}>Voir</a>
+                        </>
                       )}
                     </div>
                   </div>
