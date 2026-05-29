@@ -1,5 +1,5 @@
-import React, { useState, useContext } from 'react'
-import { AuthContext } from '../context/AuthContext'
+import { useState, useContext } from 'react'
+import { AuthContext } from '../context/AuthContextValue'
 
 function AdminLogin() {
   const { login } = useContext(AuthContext)

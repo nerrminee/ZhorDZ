@@ -149,8 +149,8 @@ textarea:focus {
   background: rgba(0, 0, 0, 0.35);
 }
 select option {
-  background-color: #140c26;
-  color: var(--text-primary);
+  background-color: #fff;
+  color: #111;
 }
 textarea {
   resize: vertical;
@@ -162,6 +162,31 @@ textarea {
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1.2rem;
+}
+
+.orders-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.order-select-all,
+.order-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--text-primary);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.order-select-all input,
+.order-select input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--accent-primary);
 }
 
 .orders-card-header h2 {
@@ -182,10 +207,40 @@ textarea {
   background: rgba(255, 255, 255, 0.72);
 }
 
+.order-card.is-selected {
+  border-color: rgba(123, 103, 89, 0.42);
+  box-shadow: 0 0 0 3px rgba(123, 103, 89, 0.08);
+}
+
 .order-card-top {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.order-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.order-total-actions {
+  display: grid;
+  justify-items: end;
+  gap: 0.5rem;
+}
+
+.order-delete-btn,
+.order-delete-selected {
+  width: auto;
+  margin-top: 0;
+}
+
+.order-delete-selected:disabled,
+.order-delete-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .order-card h3,
@@ -254,7 +309,8 @@ textarea {
 }
 
 .option-entry button,
-.option-chip-list button {
+.option-chip-list button,
+.color-picker-entry button {
   border: 1px solid rgba(113, 107, 99, 0.18);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.82);
@@ -268,6 +324,66 @@ textarea {
   min-height: 46px;
   padding: 0 0.9rem;
   white-space: nowrap;
+}
+
+.color-picker-entry {
+  display: grid;
+  grid-template-columns: 46px minmax(78px, 1fr) auto;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.color-picker-entry input[type="color"] {
+  width: 46px;
+  height: 46px;
+  padding: 2px;
+  border: 1px solid rgba(113, 107, 99, 0.2);
+  border-radius: 999px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.color-picker-entry span {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.color-picker-entry button {
+  min-height: 46px;
+  padding: 0 0.9rem;
+  white-space: nowrap;
+}
+
+.availability-toggle-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.availability-toggle-group.compact {
+  gap: 0.5rem;
+}
+
+.availability-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 42px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgba(113, 107, 99, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--text-primary);
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.availability-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent-primary);
 }
 
 .option-chip-list {
@@ -294,7 +410,8 @@ textarea {
 }
 
 @media (max-width: 620px) {
-  .option-entry {
+  .option-entry,
+  .color-picker-entry {
     grid-template-columns: 1fr;
   }
 }
@@ -341,6 +458,22 @@ textarea {
   font-weight: 500;
   color: var(--text-primary);
 }
+
+.upload-button-text,
+.add-image-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 1rem;
+  border-radius: 10px;
+  background: var(--accent-gradient);
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 800;
+  box-shadow: 0 8px 22px rgba(123, 103, 89, 0.18);
+}
+
 .upload-hint {
   font-size: 0.8rem;
   color: var(--text-secondary);
@@ -569,6 +702,28 @@ textarea {
   color: #00e676;
   margin: 0 0 0.75rem 0;
 }
+
+.stock-badge {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  max-width: 100%;
+  margin-bottom: 0.65rem;
+  padding: 0.32rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.stock-badge.in-stock {
+  background: rgba(47, 133, 90, 0.12);
+  color: #276749;
+}
+
+.stock-badge.rupture {
+  background: rgba(197, 48, 48, 0.12);
+  color: #9b2c2c;
+}
 .card-description {
   font-size: 0.85rem;
   color: var(--text-secondary);
@@ -649,6 +804,43 @@ textarea {
 
 .inventory-edit-form textarea {
   min-height: 76px;
+}
+
+.edit-image-upload {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.7rem;
+  border: 1px solid rgba(113, 107, 99, 0.16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.edit-file-input-hidden {
+  display: none;
+}
+
+.add-image-btn {
+  width: max-content;
+  cursor: pointer;
+}
+
+.edit-image-help {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.edit-image-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
+  gap: 0.45rem;
+}
+
+.edit-image-preview-grid img {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #f2ede7;
 }
 
 .inventory-edit-actions {

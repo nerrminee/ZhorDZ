@@ -1,8 +1,11 @@
 import { db, storage, isFirebaseConfigured } from '../config/firebase'
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore'
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
+import { ref, deleteObject } from 'firebase/storage'
 
 const PRODUCTS_COLL = 'products'
+const CLOUDINARY_CLOUD_NAME = 'djw220fcf'
+const CLOUDINARY_UPLOAD_PRESET = 'zhordz'
+const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`
 
 export function createProductSlug(name = '') {
   return String(name)
@@ -18,30 +21,32 @@ export async function uploadImage(file, onProgress) {
   if (!isFirebaseConfigured) throw new Error('Firebase not configured')
   if (!file) throw new Error('No file provided for upload')
 
-  const imagePath = `products/${Date.now()}_${file.name}`
-  const storageRef = ref(storage, imagePath)
-  const uploadTask = uploadBytesResumable(storageRef, file)
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
 
-  return new Promise((resolve, reject) => {
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        if (onProgress) {
-          const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)
-          onProgress(progress)
-        }
-      },
-      (error) => reject(error),
-      async () => {
-        const url = await getDownloadURL(uploadTask.snapshot.ref)
-        resolve({
-          image_url: url,
-          imageUrl: url,
-          imagePath,
-        })
-      }
-    )
+  if (onProgress) onProgress(10)
+
+  const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+    method: 'POST',
+    body: formData,
   })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.error?.message || 'Cloudinary upload failed')
+  }
+
+  if (onProgress) onProgress(100)
+
+  return {
+    image_url: data.secure_url,
+    imageUrl: data.secure_url,
+    imagePath: null,
+    publicId: data.public_id || null,
+    provider: 'cloudinary',
+  }
 }
 
 function prepareList(value = []) {
@@ -60,7 +65,12 @@ function normalizeImages(data = {}) {
     ? data.images
         .map((image) => {
           if (typeof image === 'string') return { url: image, path: null }
-          return { url: image.url || image.imageUrl || image.image_url || '', path: image.path || image.imagePath || null }
+          return {
+            url: image.url || image.imageUrl || image.image_url || '',
+            path: image.path || image.imagePath || null,
+            publicId: image.publicId || image.public_id || null,
+            provider: image.provider || null,
+          }
         })
         .filter((image) => image.url)
     : []
@@ -86,7 +96,12 @@ async function uploadImages(files = [], onProgress) {
       onProgress(totalProgress)
     })
 
-    uploaded.push({ url: imagePayload.imageUrl, path: imagePayload.imagePath })
+    uploaded.push({
+      url: imagePayload.imageUrl,
+      path: imagePayload.imagePath,
+      publicId: imagePayload.publicId,
+      provider: imagePayload.provider,
+    })
   }
 
   return uploaded
@@ -106,6 +121,7 @@ export async function addProduct(productData) {
     price,
     sizes = [],
     colors = [],
+    isInStock = true,
     file,
     files = [],
     imageUrls = [],
@@ -140,6 +156,8 @@ export async function addProduct(productData) {
     price: Number(price) || 0,
     sizes: preparedSizes,
     colors: preparedColors,
+    availability: isInStock ? 'in-stock' : 'rupture',
+    isInStock: !!isInStock,
     images,
     image_url: primaryImage.url,
     imageUrl: primaryImage.url,
@@ -177,6 +195,8 @@ export async function getProducts() {
       createdAt: data.createdAt || null,
       sizes: Array.isArray(data.sizes) ? data.sizes : [],
       colors: Array.isArray(data.colors) ? data.colors : [],
+      availability: data.availability || ((data.isInStock ?? true) ? 'in-stock' : 'rupture'),
+      isInStock: data.isInStock ?? (data.availability !== 'rupture'),
       isPublished: data.isPublished ?? data.published ?? false,
     }
   })
@@ -207,6 +227,8 @@ export function subscribeProducts(cb) {
         createdAt: data.createdAt || null,
         sizes: Array.isArray(data.sizes) ? data.sizes : [],
         colors: Array.isArray(data.colors) ? data.colors : [],
+        availability: data.availability || ((data.isInStock ?? true) ? 'in-stock' : 'rupture'),
+        isInStock: data.isInStock ?? (data.availability !== 'rupture'),
         isPublished: data.isPublished ?? data.published ?? false,
       }
     })
@@ -230,28 +252,28 @@ export async function updateProduct(id, updates = {}) {
     toUpdate.slug = createProductSlug(toUpdate.name)
   }
 
-  if (file) {
-    const imagePayload = await uploadImage(file)
-    toUpdate.imageUrl = imagePayload.imageUrl
-    toUpdate.image_url = imagePayload.image_url
-    toUpdate.imagePath = imagePayload.imagePath
-    toUpdate.images = [{ url: imagePayload.imageUrl, path: imagePayload.imagePath }]
+  if (toUpdate.isInStock !== undefined) {
+    toUpdate.isInStock = !!toUpdate.isInStock
+    toUpdate.availability = toUpdate.isInStock ? 'in-stock' : 'rupture'
+  } else if (toUpdate.availability !== undefined) {
+    toUpdate.availability = toUpdate.availability === 'rupture' ? 'rupture' : 'in-stock'
+    toUpdate.isInStock = toUpdate.availability !== 'rupture'
   }
 
-  if (files.length) {
-    const uploadedImages = await uploadImages(files)
-    toUpdate.images = uploadedImages
-    toUpdate.imageUrl = uploadedImages[0]?.url || null
-    toUpdate.image_url = uploadedImages[0]?.url || null
-    toUpdate.imagePath = uploadedImages[0]?.path || null
-  }
+  const updateFiles = files.length ? files : file ? [file] : []
 
-  if (toUpdate.imageUrls !== undefined) {
-    const imageUrls = prepareList(toUpdate.imageUrls)
-    toUpdate.images = imageUrls.map((url) => ({ url, path: null }))
-    toUpdate.imageUrl = imageUrls[0] || null
-    toUpdate.image_url = imageUrls[0] || null
-    toUpdate.imagePath = null
+  if (updateFiles.length || toUpdate.imageUrls !== undefined) {
+    const uploadedImages = updateFiles.length ? await uploadImages(updateFiles) : []
+    const imageUrls = toUpdate.imageUrls !== undefined ? prepareList(toUpdate.imageUrls) : []
+    const images = [
+      ...uploadedImages,
+      ...imageUrls.map((url) => ({ url, path: null })),
+    ]
+
+    toUpdate.images = images
+    toUpdate.imageUrl = images[0]?.url || null
+    toUpdate.image_url = images[0]?.url || null
+    toUpdate.imagePath = images[0]?.path || null
   }
 
   if (removeImage) {

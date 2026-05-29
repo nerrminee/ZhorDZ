@@ -3,6 +3,7 @@ import '../App.css'
 import { getProducts, subscribeProducts } from '../services/products'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { getColorValue, getProductImages } from '../utils/productOptions'
+import { formatPrice } from '../utils/cart'
 
 function Liked() {
   const [products, setProducts] = useState([])
@@ -74,16 +75,25 @@ function Liked() {
               const selected = selectedOptions[product.id] || {}
               const activeColor = selected.color || product.colors?.[0] || ''
               const activeSize = selected.size || product.sizes?.[0] || ''
+              const inStock = product.isInStock ?? true
 
               return (
                 <article className="shop-card" key={product.id} style={{ animationDelay: `${index * 80}ms` }}>
                   <div className="shop-card-image">
-                    {productImages[0] ? (
-                      <img src={productImages[0]} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    {productImages.length ? (
+                      <div className="shop-image-reel" style={{ '--image-count': productImages.length }}>
+                        {productImages.map((image, imageIndex) => (
+                          <img src={image} alt={imageIndex === 0 ? product.name : ''} key={image} />
+                        ))}
+                      </div>
                     ) : null}
+                    {productImages.length > 1 ? <span className="shop-image-hint">Scroll</span> : null}
                   </div>
                   <div className="shop-card-body">
                     <h2>{product.name}</h2>
+                    <span className={`product-stock-pill ${inStock ? 'in-stock' : 'rupture'}`}>
+                      {inStock ? 'In stock' : 'Rupture'}
+                    </span>
                     <p>{product.description}</p>
                     {(product.colors?.length || product.sizes?.length) ? (
                       <div className="shop-card-options" aria-label="Product options">
@@ -119,7 +129,7 @@ function Liked() {
                       </div>
                     ) : null}
                     <div className="shop-card-meta">
-                      <span>{product.price ? `\u20ac${product.price}` : ''}</span>
+                      <span>{product.price ? formatPrice(product.price) : ''}</span>
                       <button
                         type="button"
                         className="shop-card-btn remove-from-wishlist"

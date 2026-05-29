@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import './AdminPanel.css'
 import { addProduct, deleteProduct, subscribeProducts, updateProduct } from '../services/products'
-import { subscribeOrders } from '../services/orders'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { formatPrice } from '../utils/cart'
 
@@ -13,13 +12,14 @@ export default function AdminPanel() {
   const [description, setDescription] = useState('')
   const [detailDescription, setDetailDescription] = useState('')
   const [category, setCategory] = useState('')
-  const [sku, setSku] = useState('')
   const [fabric, setFabric] = useState('')
   const [care, setCare] = useState('')
   const [sizes, setSizes] = useState([])
   const [colors, setColors] = useState([])
+  const [isInStock, setIsInStock] = useState(true)
   const [sizeDraft, setSizeDraft] = useState('')
   const [colorDraft, setColorDraft] = useState('')
+  const [colorPicker, setColorPicker] = useState('#7b6759')
   const [newCollection, setNewCollection] = useState('')
   const [customCollections, setCustomCollections] = useLocalStorage('zhordz-collections', DEFAULT_COLLECTIONS)
   const [images, setImages] = useState([])
@@ -31,18 +31,12 @@ export default function AdminPanel() {
   const [message, setMessage] = useState({ type: '', text: '' })
 
   const [products, setProducts] = useState([])
-  const [orders, setOrders] = useState([])
-  const [isOrdersOpen, setIsOrdersOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editState, setEditState] = useState({})
+  const [editImagePreviews, setEditImagePreviews] = useState([])
 
   useEffect(() => {
     const unsubscribe = subscribeProducts((list) => setProducts(list))
-    return () => unsubscribe()
-  }, [])
-
-  useEffect(() => {
-    const unsubscribe = subscribeOrders((list) => setOrders(list))
     return () => unsubscribe()
   }, [])
 
@@ -125,11 +119,12 @@ export default function AdminPanel() {
         description,
         detailDescription,
         category,
-        sku,
+        sku: '',
         fabric,
         care,
         sizes,
         colors,
+        isInStock,
         files: images,
         imageUrls: imageUrlInput,
         onUploadProgress: setUploadProgress,
@@ -141,13 +136,14 @@ export default function AdminPanel() {
       setDescription('')
       setDetailDescription('')
       setCategory('')
-      setSku('')
       setFabric('')
       setCare('')
       setSizes([])
       setColors([])
+      setIsInStock(true)
       setSizeDraft('')
       setColorDraft('')
+      setColorPicker('#7b6759')
       setImages([])
       setImageUrlInput('')
       setImagePreviews([])
@@ -185,19 +181,41 @@ export default function AdminPanel() {
       description: product.description || '',
       detailDescription: product.detailDescription || product.details || '',
       category: product.category || '',
-      sku: product.sku || '',
       fabric: product.fabric || '',
       care: product.care || '',
       sizes: Array.isArray(product.sizes) ? product.sizes.join(', ') : '',
       colors: Array.isArray(product.colors) ? product.colors.join(', ') : '',
+      isInStock: product.isInStock ?? true,
+      files: [],
       imageUrls: Array.isArray(product.images)
         ? product.images.map((image) => image.url).join('\n')
         : product.imageUrl || '',
     })
+    setEditImagePreviews([])
   }
 
   const handleEditChange = (field, value) => {
     setEditState((current) => ({ ...current, [field]: value }))
+  }
+
+  const handleEditImageChange = (event) => {
+    const selectedFiles = Array.from(event.target.files || [])
+    if (!selectedFiles.length) return
+
+    if (selectedFiles.some((file) => !file.type.startsWith('image/'))) {
+      showAlert('error', 'Please select valid image files (PNG, JPG, WebP).')
+      return
+    }
+
+    setEditState((current) => ({ ...current, files: selectedFiles }))
+
+    Promise.all(
+      selectedFiles.map((file) => new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result)
+        reader.readAsDataURL(file)
+      }))
+    ).then((previews) => setEditImagePreviews(previews))
   }
 
   const handleSaveEdit = async (productId) => {
@@ -206,9 +224,11 @@ export default function AdminPanel() {
         ...editState,
         sizes: editState.sizes.split(',').map((item) => item.trim()).filter(Boolean),
         colors: editState.colors.split(',').map((item) => item.trim()).filter(Boolean),
+        isInStock: !!editState.isInStock,
       })
       setEditingId(null)
       setEditState({})
+      setEditImagePreviews([])
       showAlert('success', 'Product details updated successfully.')
     } catch (error) {
       console.error('Failed to update product:', error)
@@ -245,7 +265,7 @@ export default function AdminPanel() {
 
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="product-price">Price (€)</label>
+                <label htmlFor="product-price">Price (DA)</label>
                 <input
                   id="product-price"
                   type="number"
@@ -298,6 +318,16 @@ export default function AdminPanel() {
                       placeholder="Beige, Gold, #c5a34f..."
                     />
                     <button type="button" onClick={() => addListItem(colorDraft, setColors, setColorDraft)}>Add color</button>
+                  </div>
+                  <div className="color-picker-entry">
+                    <input
+                      type="color"
+                      value={colorPicker}
+                      onChange={(e) => setColorPicker(e.target.value)}
+                      aria-label="Choose precise color"
+                    />
+                    <span>{colorPicker}</span>
+                    <button type="button" onClick={() => addListItem(colorPicker, setColors, setColorDraft)}>Add precise color</button>
                   </div>
                   {colors.length ? (
                     <div className="option-chip-list" aria-label="Selected colors">
@@ -364,16 +394,6 @@ export default function AdminPanel() {
                   <button type="button" onClick={handleAddCollection}>Add collection</button>
                 </div>
               </div>
-              <div className="form-group">
-                <label htmlFor="product-sku">Reference</label>
-                <input
-                  id="product-sku"
-                  type="text"
-                  value={sku}
-                  onChange={(e) => setSku(e.target.value)}
-                  placeholder="ZHOR-001"
-                />
-              </div>
             </div>
 
             <div className="form-row">
@@ -400,6 +420,28 @@ export default function AdminPanel() {
             </div>
 
             <div className="form-group">
+              <label>Availability</label>
+              <div className="availability-toggle-group" role="group" aria-label="Product availability">
+                <label className="availability-check">
+                  <input
+                    type="checkbox"
+                    checked={isInStock}
+                    onChange={() => setIsInStock(true)}
+                  />
+                  <span>In stock</span>
+                </label>
+                <label className="availability-check">
+                  <input
+                    type="checkbox"
+                    checked={!isInStock}
+                    onChange={() => setIsInStock(false)}
+                  />
+                  <span>Rupture</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="form-group">
               <label htmlFor="file-upload">Product Images</label>
               <div className={`upload-zone ${imagePreviews.length ? 'has-preview' : ''}`}>
                 <input id="file-upload" type="file" accept="image/*" multiple onChange={handleImageChange} className="file-input-hidden" />
@@ -416,7 +458,7 @@ export default function AdminPanel() {
                   ) : (
                     <div className="upload-placeholder">
                       <span className="upload-icon">📸</span>
-                      <span className="upload-text">Click to upload images</span>
+                      <span className="upload-button-text">Ajoute image</span>
                       <span className="upload-hint">PNG, JPG, or WebP</span>
                     </div>
                   )}
@@ -461,60 +503,6 @@ export default function AdminPanel() {
           </form>
         </section>
 
-        <section className="orders-card">
-          <div className="orders-card-header">
-            <h2>Orders ({orders.length})</h2>
-            <button type="button" className="edit-btn" onClick={() => setIsOrdersOpen((open) => !open)}>
-              {isOrdersOpen ? 'Hide orders' : 'List of orders'}
-            </button>
-          </div>
-
-          {isOrdersOpen ? (
-            orders.length ? (
-              <div className="orders-list">
-                {orders.map((order) => (
-                  <article className="order-card" key={order.id}>
-                    <div className="order-card-top">
-                      <div>
-                        <h3>{order.customer?.lastName} {order.customer?.firstName}</h3>
-                        <p>{order.customer?.phone} - {order.customer?.wilaya}</p>
-                      </div>
-                      <strong>{formatPrice(order.total)}</strong>
-                    </div>
-                    <div className="order-items">
-                      {order.items?.map((item) => (
-                        <div className="order-item" key={item.cartId || item.productId}>
-                          <div className="order-thumb">
-                            {item.imageUrl ? <img src={item.imageUrl} alt={item.name} /> : null}
-                          </div>
-                          <div>
-                            <h4>{item.name}</h4>
-                            <p>
-                              Qty {item.quantity}
-                              {item.color ? ` / ${item.color}` : ''}
-                              {item.size ? ` / ${item.size}` : ''}
-                            </p>
-                            <span>{formatPrice(Number(item.price) * Number(item.quantity || 1))}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="order-meta">
-                      <span>Livraison: {formatPrice(order.deliveryPrice)}</span>
-                      <span>Cash on delivery</span>
-                      {order.customer?.note ? <span>Note: {order.customer.note}</span> : null}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-inventory">
-                <p>No orders yet.</p>
-              </div>
-            )
-          ) : null}
-        </section>
-
         <section className="inventory-card">
           <h2>Active Inventory ({products.length})</h2>
           {products.length === 0 ? (
@@ -540,23 +528,71 @@ export default function AdminPanel() {
                         <textarea value={editState.description} onChange={(e) => handleEditChange('description', e.target.value)} aria-label="Product description" />
                         <textarea value={editState.detailDescription} onChange={(e) => handleEditChange('detailDescription', e.target.value)} aria-label="Product details" />
                         <input value={editState.category} onChange={(e) => handleEditChange('category', e.target.value)} aria-label="Product category" placeholder="Category" />
-                        <input value={editState.sku} onChange={(e) => handleEditChange('sku', e.target.value)} aria-label="Product reference" placeholder="Reference" />
                         <input value={editState.fabric} onChange={(e) => handleEditChange('fabric', e.target.value)} aria-label="Product fabric" placeholder="Fabric" />
                         <input value={editState.care} onChange={(e) => handleEditChange('care', e.target.value)} aria-label="Product care" placeholder="Care" />
                         <input value={editState.sizes} onChange={(e) => handleEditChange('sizes', e.target.value)} aria-label="Product sizes" placeholder="Sizes" />
                         <input value={editState.colors} onChange={(e) => handleEditChange('colors', e.target.value)} aria-label="Product colors" placeholder="Colors" />
+                        <div className="availability-toggle-group compact" role="group" aria-label="Product availability">
+                          <label className="availability-check">
+                            <input
+                              type="checkbox"
+                              checked={!!editState.isInStock}
+                              onChange={() => handleEditChange('isInStock', true)}
+                            />
+                            <span>In stock</span>
+                          </label>
+                          <label className="availability-check">
+                            <input
+                              type="checkbox"
+                              checked={!editState.isInStock}
+                              onChange={() => handleEditChange('isInStock', false)}
+                            />
+                            <span>Rupture</span>
+                          </label>
+                        </div>
+                        <div className="edit-image-upload">
+                          <input
+                            id={`edit-images-${product.id}`}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleEditImageChange}
+                            className="edit-file-input-hidden"
+                          />
+                          <label htmlFor={`edit-images-${product.id}`} className="add-image-btn">Ajoute image</label>
+                          <span className="edit-image-help">Upload one or more pictures from device</span>
+                          {editImagePreviews.length ? (
+                            <div className="edit-image-preview-grid">
+                              {editImagePreviews.map((preview, index) => (
+                                <img src={preview} alt={`New preview ${index + 1}`} key={preview} />
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
                         <textarea value={editState.imageUrls} onChange={(e) => handleEditChange('imageUrls', e.target.value)} aria-label="Product image URLs" placeholder="Image URLs, one per line" />
                         <div className="inventory-edit-actions">
                           <button type="button" onClick={() => handleSaveEdit(product.id)} className="save-btn">Save</button>
-                          <button type="button" onClick={() => setEditingId(null)} className="cancel-btn">Cancel</button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingId(null)
+                              setEditImagePreviews([])
+                            }}
+                            className="cancel-btn"
+                          >
+                            Cancel
+                          </button>
                         </div>
                       </div>
                     ) : (
                       <>
                         <h3 className="card-title">{product.name || 'Untitled'}</h3>
-                        <p className="card-price">€{(product.price || 0).toFixed(2)}</p>
+                        <span className={`stock-badge ${product.isInStock ? 'in-stock' : 'rupture'}`}>
+                          {product.isInStock ? 'In stock' : 'Rupture'}
+                        </span>
+                        <p className="card-price">{formatPrice(product.price || 0)}</p>
                         <p className="card-description">{product.description}</p>
-                        <p className="card-description">{product.detailDescription || product.category || product.sku || 'No detail page fields yet.'}</p>
+                        <p className="card-description">{product.detailDescription || product.category || 'No detail page fields yet.'}</p>
                         <div className="inventory-actions">
                           <button onClick={() => startEditing(product)} className="edit-btn" aria-label="Edit product">
                             Edit Details

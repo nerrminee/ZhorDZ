@@ -1,7 +1,6 @@
-import React, { createContext, useState, useEffect } from 'react'
+import { useState } from 'react'
 import { ADMIN_USERNAME, ADMIN_PASSWORD } from '../config/adminCredentials'
-
-export const AuthContext = createContext()
+import { AuthContext } from './AuthContextValue'
 
 export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(

@@ -1,5 +1,5 @@
 import { db, isFirebaseConfigured } from '../config/firebase'
-import { collection, addDoc, onSnapshot, orderBy, query, serverTimestamp } from 'firebase/firestore'
+import { collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp } from 'firebase/firestore'
 
 const ORDERS_COLL = 'orders'
 
@@ -26,4 +26,10 @@ export function subscribeOrders(cb) {
   })
 
   return unsub
+}
+
+export async function deleteOrder(orderId) {
+  if (!isFirebaseConfigured) throw new Error('Firebase not configured')
+  await deleteDoc(doc(db, ORDERS_COLL, orderId))
+  return orderId
 }

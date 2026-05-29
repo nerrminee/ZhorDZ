@@ -6,8 +6,10 @@ import Boutique from './pages/Boutique'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
 import Contact from './pages/Contact'
+import Collection from './pages/Collection'
 import Liked from './pages/Liked'
 import ProductDetail from './pages/ProductDetail'
+import AdminOrders from './pages/AdminOrders'
 
 const navItems = [
   { label: 'Acceuil', href: '/' },
@@ -38,7 +40,7 @@ function App() {
 
   return (
     <>
-      {path !== '/admin' && path !== '/admin/login' ? (
+      {!path.startsWith('/admin') ? (
         <>
           <header className="site-header">
             <div className="nav-shell">
@@ -97,6 +99,8 @@ function App() {
             <Liked />
           ) : path === '/contact' ? (
             <Contact />
+          ) : path === '/collection' ? (
+            <Collection />
           ) : (
             <main className="shop-preview" aria-label="Shop preview">
               <div className="hero-welcome">
@@ -145,6 +149,8 @@ function App() {
 
       {path === '/admin' ? (
         <Admin />
+      ) : path === '/admin/orders' ? (
+        <AdminOrders />
       ) : path === '/admin/login' ? (
         <AdminLogin />
       ) : null}

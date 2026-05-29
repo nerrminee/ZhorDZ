@@ -1,10 +1,10 @@
 import { useEffect, useState, useContext } from 'react'
 import '../App.css'
 import { getProducts, subscribeProducts, updateProduct, createProductSlug } from '../services/products'
-import { AuthContext } from '../context/AuthContext'
+import { AuthContext } from '../context/AuthContextValue'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { getColorValue, getProductImages } from '../utils/productOptions'
-import { createCartItem, writeCheckout } from '../utils/cart'
+import { createCartItem, formatPrice, writeCheckout } from '../utils/cart'
 
 function Boutique() {
   const [products, setProducts] = useState([])
@@ -45,15 +45,15 @@ function Boutique() {
     }
 
     load()
-
-    // subscribe for realtime updates
     unsub = subscribeProducts((list) => setProducts(list))
 
     return () => unsub && unsub()
   }, [])
 
   const { isAuthenticated } = useContext(AuthContext)
-  const visibleProducts = isAuthenticated ? products : products.filter((p) => p.isPublished)
+  const activeCollection = new URLSearchParams(window.location.search).get('collection') || ''
+  const visibleProducts = (isAuthenticated ? products : products.filter((p) => p.isPublished))
+    .filter((p) => !activeCollection || p.category === activeCollection)
 
   async function handlePublish(id) {
     try {
@@ -68,15 +68,21 @@ function Boutique() {
     window.location.assign('/checkout')
   }
 
+  const scrollProductImages = (productId, direction) => {
+    const reel = document.getElementById(`product-reel-${productId}`)
+    if (!reel) return
+    reel.scrollBy({ left: direction * reel.clientWidth, behavior: 'smooth' })
+  }
+
   return (
     <main className="shop-preview boutique-page" aria-label="Boutique page">
       <div className="boutique-shell">
         <div className="boutique-header">
           <div>
             <p className="boutique-subtitle">Shop</p>
-            <h1>Collection</h1>
+            <h1>{activeCollection || 'Collection'}</h1>
           </div>
-          <p>Découvrez une sélection raffinée de parfums et de vêtements.</p>
+          <p>Decouvrez une selection raffinee de parfums et de vetements.</p>
         </div>
 
         <div className="shop-grid">
@@ -87,9 +93,9 @@ function Boutique() {
                 <div className="shop-card-body">
                   <span className="shop-card-tag">Nouveau</span>
                   <h2>Produit {index + 1}</h2>
-                  <p>Un produit élégant avec une silhouette épurée et une finition premium.</p>
+                  <p>Un produit elegant avec une silhouette epuree et une finition premium.</p>
                   <div className="shop-card-meta">
-                    <span>€89</span>
+                    <span>8900 DA</span>
                     <button className="shop-card-btn">Voir</button>
                   </div>
                 </div>
@@ -102,75 +108,104 @@ function Boutique() {
               const selected = selectedOptions[p.id] || {}
               const activeColor = selected.color || p.colors?.[0] || ''
               const activeSize = selected.size || p.sizes?.[0] || ''
+              const inStock = p.isInStock ?? true
 
               return (
-              <article className="shop-card" key={p.id || index} style={{ animationDelay: `${index * 80}ms` }}>
-                <a className="shop-card-image shop-card-link" href={productUrl}>
-                  {productImages[0] ? (
-                    <img src={productImages[0]} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : null}
-                </a>
-                <div className="shop-card-body">
-                  <h2>
-                    <a className="product-title-link" href={productUrl}>{p.name}</a>
-                  </h2>
-                  <p>{p.description}</p>
-                  {(p.colors?.length || p.sizes?.length) ? (
-                    <div className="shop-card-options" aria-label="Product options">
-                      {p.colors?.length ? (
-                        <div className="shop-color-list" aria-label="Available colors">
-                          {p.colors.map((color) => (
-                            <button
-                              type="button"
-                              key={color}
-                              className={`color-swatch ${activeColor === color ? 'is-selected' : ''}`}
-                              style={{ '--swatch-color': getColorValue(color) }}
-                              aria-label={`Select ${color}`}
-                              title={color}
-                              onClick={() => selectOption(p.id, 'color', color)}
-                            />
+                <article className="shop-card" key={p.id || index} style={{ animationDelay: `${index * 80}ms` }}>
+                  <div className="shop-card-image">
+                    <a className="shop-card-link" href={productUrl}>
+                      {productImages.length ? (
+                        <div id={`product-reel-${p.id}`} className="shop-image-reel" style={{ '--image-count': productImages.length }}>
+                          {productImages.map((image, imageIndex) => (
+                            <img src={image} alt={imageIndex === 0 ? p.name : ''} key={image} />
                           ))}
                         </div>
                       ) : null}
-                      {p.sizes?.length ? (
-                        <div className="shop-size-list" aria-label="Available sizes">
-                          {p.sizes.map((size) => (
-                            <button
-                              type="button"
-                              key={size}
-                              className={activeSize === size ? 'is-selected' : ''}
-                              onClick={() => selectOption(p.id, 'size', size)}
-                            >
-                              {size}
+                    </a>
+                    {productImages.length > 1 ? (
+                      <div className="shop-image-arrows" aria-label="Product image controls">
+                        <button type="button" onClick={() => scrollProductImages(p.id, -1)} aria-label="Previous image">‹</button>
+                        <button type="button" onClick={() => scrollProductImages(p.id, 1)} aria-label="Next image">›</button>
+                      </div>
+                    ) : null}
+                    {productImages.length > 1 ? <span className="shop-image-hint">Scroll</span> : null}
+                  </div>
+                  <div className="shop-card-body">
+                    <h2>
+                      <a className="product-title-link" href={productUrl}>{p.name}</a>
+                    </h2>
+                    <span className={`product-stock-pill ${inStock ? 'in-stock' : 'rupture'}`}>
+                      {inStock ? 'In stock' : 'Rupture'}
+                    </span>
+                    <p>{p.description}</p>
+                    {(p.fabric || p.care) ? (
+                      <div className="shop-card-details">
+                        {p.fabric ? (
+                          <span><strong>Fabric</strong>{p.fabric}</span>
+                        ) : null}
+                        {p.care ? (
+                          <span><strong>Care</strong>{p.care}</span>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {(p.colors?.length || p.sizes?.length) ? (
+                      <div className="shop-card-options" aria-label="Product options">
+                        {p.colors?.length ? (
+                          <div className="shop-color-list" aria-label="Available colors">
+                            {p.colors.map((color) => (
+                              <button
+                                type="button"
+                                key={color}
+                                className={`color-swatch ${activeColor === color ? 'is-selected' : ''}`}
+                                style={{ '--swatch-color': getColorValue(color) }}
+                                aria-label={`Select ${color}`}
+                                title={color}
+                                onClick={() => selectOption(p.id, 'color', color)}
+                              />
+                            ))}
+                          </div>
+                        ) : null}
+                        {p.sizes?.length ? (
+                          <div className="shop-size-list" aria-label="Available sizes">
+                            {p.sizes.map((size) => (
+                              <button
+                                type="button"
+                                key={size}
+                                className={activeSize === size ? 'is-selected' : ''}
+                                onClick={() => selectOption(p.id, 'size', size)}
+                              >
+                                {size}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    <div className="shop-card-meta">
+                      <span>{p.price ? formatPrice(p.price) : ''}</span>
+                      <div className="shop-card-actions">
+                        <button
+                          type="button"
+                          className={`like-toggle ${isLiked(p.id) ? 'liked' : ''}`}
+                          aria-label={isLiked(p.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                          onClick={() => toggleLike(p.id)}
+                        >
+                          {isLiked(p.id) ? '♥' : '♡'}
+                        </button>
+                        {isAuthenticated && !p.isPublished ? (
+                          <button className="shop-card-btn" onClick={() => handlePublish(p.id)}>Publier</button>
+                        ) : (
+                          <>
+                            <button className="shop-card-btn" type="button" onClick={() => buyProduct(p, activeColor, activeSize)} disabled={!inStock}>
+                              {inStock ? 'Buy' : 'Rupture'}
                             </button>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  <div className="shop-card-meta">
-                    <span>{p.price ? `€${p.price}` : ''}</span>
-                    <div className="shop-card-actions">
-                      <button
-                        type="button"
-                        className={`like-toggle ${isLiked(p.id) ? 'liked' : ''}`}
-                        aria-label={isLiked(p.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                        onClick={() => toggleLike(p.id)}
-                      >
-                        {isLiked(p.id) ? '❤' : '♡'}
-                      </button>
-                      {isAuthenticated && !p.isPublished ? (
-                        <button className="shop-card-btn" onClick={() => handlePublish(p.id)}>Publier</button>
-                      ) : (
-                        <>
-                          <button className="shop-card-btn" type="button" onClick={() => buyProduct(p, activeColor, activeSize)}>Buy</button>
-                          <a className="shop-card-btn" href={productUrl}>Voir</a>
-                        </>
-                      )}
+                            <a className="shop-card-btn" href={productUrl}>Voir</a>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </article>
+                </article>
               )
             })
           )}

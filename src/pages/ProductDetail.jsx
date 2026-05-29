@@ -1,10 +1,10 @@
 import { useContext, useEffect, useMemo, useState } from 'react'
 import '../App.css'
-import { AuthContext } from '../context/AuthContext'
+import { AuthContext } from '../context/AuthContextValue'
 import { getProducts, subscribeProducts, createProductSlug } from '../services/products'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { getColorValue, getProductImages } from '../utils/productOptions'
-import { CART_STORAGE_KEY, createCartItem, writeCheckout } from '../utils/cart'
+import { CART_STORAGE_KEY, createCartItem, formatPrice, writeCheckout } from '../utils/cart'
 
 function ProductDetail({ slug }) {
   const [products, setProducts] = useState([])
@@ -72,11 +72,12 @@ function ProductDetail({ slug }) {
     )
   }
 
-  const hasDetails = product.detailDescription || product.fabric || product.care || product.category || product.sku
+  const hasDetails = product.detailDescription || product.fabric || product.care || product.category
   const productImages = getProductImages(product)
   const activeColor = product.colors?.includes(selectedColor) ? selectedColor : product.colors?.[0] || ''
   const activeSize = product.sizes?.includes(selectedSize) ? selectedSize : product.sizes?.[0] || ''
   const activeImage = productImages.includes(selectedImage) ? selectedImage : productImages[0] || ''
+  const inStock = product.isInStock ?? true
 
   const selectedItem = () => createCartItem(product, {
     color: activeColor,
@@ -129,7 +130,10 @@ function ProductDetail({ slug }) {
           <div className="product-info-panel">
             {product.category ? <p className="product-category">{product.category}</p> : null}
             <h1>{product.name}</h1>
-            <p className="product-price">{product.price ? `\u20ac${Number(product.price).toFixed(2)}` : ''}</p>
+            <span className={`product-stock-pill detail ${inStock ? 'in-stock' : 'rupture'}`}>
+              {inStock ? 'In stock' : 'Rupture'}
+            </span>
+            <p className="product-price">{product.price ? formatPrice(product.price) : ''}</p>
             <p className="product-summary">{product.description}</p>
 
             {product.colors?.length ? (
@@ -177,8 +181,10 @@ function ProductDetail({ slug }) {
                 <span>{quantity}</span>
                 <button type="button" onClick={() => setQuantity((value) => value + 1)}>+</button>
               </div>
-              <button type="button" className="add-cart-btn" onClick={addToCart}>Ajouter au panier</button>
-              <button type="button" className="add-cart-btn buy-now-btn" onClick={buyNow}>Buy now</button>
+              <button type="button" className="add-cart-btn" onClick={addToCart} disabled={!inStock}>Ajouter au panier</button>
+              <button type="button" className="add-cart-btn buy-now-btn" onClick={buyNow} disabled={!inStock}>
+                {inStock ? 'Buy now' : 'Rupture'}
+              </button>
               <button
                 type="button"
                 className={`like-toggle product-like ${likedIds.includes(product.id) ? 'liked' : ''}`}
@@ -207,12 +213,6 @@ function ProductDetail({ slug }) {
                   <section>
                     <h2>Entretien</h2>
                     <p>{product.care}</p>
-                  </section>
-                ) : null}
-                {product.sku ? (
-                  <section>
-                    <h2>Reference</h2>
-                    <p>{product.sku}</p>
                   </section>
                 ) : null}
               </div>
