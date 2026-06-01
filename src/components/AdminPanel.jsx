@@ -5,6 +5,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage'
 import { formatPrice } from '../utils/cart'
 
 const DEFAULT_COLLECTIONS = ['Ensembles', 'Robes', 'Parfums', 'Accessoires']
+const DEFAULT_PRODUCT_CATEGORIES = ['Dress', 'Set', 'Perfume', 'Accessory', 'Abaya', 'Top']
 
 export default function AdminPanel() {
   const [name, setName] = useState('')
@@ -12,6 +13,7 @@ export default function AdminPanel() {
   const [description, setDescription] = useState('')
   const [detailDescription, setDetailDescription] = useState('')
   const [category, setCategory] = useState('')
+  const [productCategory, setProductCategory] = useState('')
   const [fabric, setFabric] = useState('')
   const [care, setCare] = useState('')
   const [sizes, setSizes] = useState([])
@@ -21,7 +23,9 @@ export default function AdminPanel() {
   const [colorDraft, setColorDraft] = useState('')
   const [colorPicker, setColorPicker] = useState('#7b6759')
   const [newCollection, setNewCollection] = useState('')
+  const [newProductCategory, setNewProductCategory] = useState('')
   const [customCollections, setCustomCollections] = useLocalStorage('zhordz-collections', DEFAULT_COLLECTIONS)
+  const [customProductCategories, setCustomProductCategories] = useLocalStorage('zhordz-product-categories', DEFAULT_PRODUCT_CATEGORIES)
   const [images, setImages] = useState([])
   const [imageUrlInput, setImageUrlInput] = useState('')
 
@@ -44,6 +48,20 @@ export default function AdminPanel() {
     const productCollections = products.map((product) => product.category).filter(Boolean)
     return Array.from(new Set([...customCollections, ...productCollections])).sort((a, b) => a.localeCompare(b))
   }, [customCollections, products])
+
+  const collectionCounts = useMemo(() => {
+    return products.reduce((counts, product) => {
+      const productCategory = product.category?.trim()
+      if (!productCategory) return counts
+      counts[productCategory] = (counts[productCategory] || 0) + 1
+      return counts
+    }, {})
+  }, [products])
+
+  const productCategoryOptions = useMemo(() => {
+    const productCategories = products.map((product) => product.productCategory).filter(Boolean)
+    return Array.from(new Set([...customProductCategories, ...productCategories])).sort((a, b) => a.localeCompare(b))
+  }, [customProductCategories, products])
 
   const addListItem = (value, setter, resetter) => {
     const prepared = value.trim()
@@ -68,6 +86,37 @@ export default function AdminPanel() {
     setCustomCollections((current) => current.includes(prepared) ? current : [...current, prepared])
     setCategory(prepared)
     setNewCollection('')
+  }
+
+  const handleAddProductCategory = () => {
+    const prepared = newProductCategory.trim()
+    if (!prepared) return
+    setCustomProductCategories((current) => current.includes(prepared) ? current : [...current, prepared])
+    setProductCategory(prepared)
+    setNewProductCategory('')
+  }
+
+  const handleDeleteCollection = async (collectionName) => {
+    const affectedProducts = products.filter((product) => product.category === collectionName)
+    const message = affectedProducts.length
+      ? `Delete collection "${collectionName}" and remove it from ${affectedProducts.length} product${affectedProducts.length > 1 ? 's' : ''}?`
+      : `Delete collection "${collectionName}"?`
+
+    if (!window.confirm(message)) return
+
+    try {
+      setCustomCollections((current) => current.filter((collection) => collection !== collectionName))
+      if (category === collectionName) setCategory('')
+
+      await Promise.all(
+        affectedProducts.map((product) => updateProduct(product.id, { category: '' }))
+      )
+
+      showAlert('success', 'Collection deleted successfully.')
+    } catch (error) {
+      console.error('Failed to delete collection:', error)
+      showAlert('error', `Failed to delete collection: ${error.message}`)
+    }
   }
 
   const handleImageChange = (e) => {
@@ -119,6 +168,7 @@ export default function AdminPanel() {
         description,
         detailDescription,
         category,
+        productCategory,
         sku: '',
         fabric,
         care,
@@ -136,6 +186,7 @@ export default function AdminPanel() {
       setDescription('')
       setDetailDescription('')
       setCategory('')
+      setProductCategory('')
       setFabric('')
       setCare('')
       setSizes([])
@@ -181,6 +232,7 @@ export default function AdminPanel() {
       description: product.description || '',
       detailDescription: product.detailDescription || product.details || '',
       category: product.category || '',
+      productCategory: product.productCategory || '',
       fabric: product.fabric || '',
       care: product.care || '',
       sizes: Array.isArray(product.sizes) ? product.sizes.join(', ') : '',
@@ -393,6 +445,52 @@ export default function AdminPanel() {
                   />
                   <button type="button" onClick={handleAddCollection}>Add collection</button>
                 </div>
+                {collectionOptions.length ? (
+                  <div className="collection-manager" aria-label="Manage collections">
+                    {collectionOptions.map((collection) => (
+                      <div className="collection-manager-row" key={collection}>
+                        <span>
+                          {collection}
+                          <small>{collectionCounts[collection] || 0} product{collectionCounts[collection] === 1 ? '' : 's'}</small>
+                        </span>
+                        <button type="button" onClick={() => handleDeleteCollection(collection)}>
+                          Delete
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="product-type">Product Category</label>
+                <select
+                  id="product-type"
+                  value={productCategory}
+                  onChange={(e) => setProductCategory(e.target.value)}
+                >
+                  <option value="">Choose product category</option>
+                  {productCategoryOptions.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                <div className="option-entry collection-entry">
+                  <input
+                    type="text"
+                    value={newProductCategory}
+                    onChange={(e) => setNewProductCategory(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter') return
+                      e.preventDefault()
+                      handleAddProductCategory()
+                    }}
+                    placeholder="New product category"
+                    aria-label="New product category"
+                  />
+                  <button type="button" onClick={handleAddProductCategory}>Add category</button>
+                </div>
               </div>
             </div>
 
@@ -528,6 +626,7 @@ export default function AdminPanel() {
                         <textarea value={editState.description} onChange={(e) => handleEditChange('description', e.target.value)} aria-label="Product description" />
                         <textarea value={editState.detailDescription} onChange={(e) => handleEditChange('detailDescription', e.target.value)} aria-label="Product details" />
                         <input value={editState.category} onChange={(e) => handleEditChange('category', e.target.value)} aria-label="Product category" placeholder="Category" />
+                        <input value={editState.productCategory} onChange={(e) => handleEditChange('productCategory', e.target.value)} aria-label="Product type" placeholder="Product category" />
                         <input value={editState.fabric} onChange={(e) => handleEditChange('fabric', e.target.value)} aria-label="Product fabric" placeholder="Fabric" />
                         <input value={editState.care} onChange={(e) => handleEditChange('care', e.target.value)} aria-label="Product care" placeholder="Care" />
                         <input value={editState.sizes} onChange={(e) => handleEditChange('sizes', e.target.value)} aria-label="Product sizes" placeholder="Sizes" />
@@ -591,6 +690,7 @@ export default function AdminPanel() {
                           {product.isInStock ? 'In stock' : 'Rupture'}
                         </span>
                         <p className="card-price">{formatPrice(product.price || 0)}</p>
+                        {product.productCategory ? <span className="stock-badge category-badge">{product.productCategory}</span> : null}
                         <p className="card-description">{product.description}</p>
                         <p className="card-description">{product.detailDescription || product.category || 'No detail page fields yet.'}</p>
                         <div className="inventory-actions">

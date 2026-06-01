@@ -33,3 +33,23 @@ import { auth, db, storage } from '../config/firebase'
 - `auth`: Firebase Authentication.
 - `db`: Cloud Firestore.
 - `storage`: Firebase Storage.
+
+## 4. Publish Firestore security rules
+
+The hosted Vercel app still uses Firebase Security Rules from the Firebase project.
+If clients see `Missing or insufficient permissions` when confirming an order,
+publish the rules from `firestore.rules`.
+
+With Firebase CLI:
+
+```bash
+firebase deploy --only firestore:rules --project zhor-d0b03
+```
+
+Or paste the contents of `firestore.rules` into Firebase Console:
+
+Firestore Database -> Rules -> Publish.
+
+These rules allow public clients to create valid cash-on-delivery orders. Reads,
+updates, and deletes for orders stay closed until real Firebase admin
+authentication is added.

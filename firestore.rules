@@ -1,0 +1,49 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+
+    match /orders/{orderId} {
+      allow create: if isValidOrder();
+      allow read, update, delete: if false;
+    }
+
+    function isValidOrder() {
+      return request.resource.data.keys().hasOnly([
+          'customer',
+          'items',
+          'subtotal',
+          'deliveryPrice',
+          'total',
+          'status',
+          'paymentMethod',
+          'createdAt'
+        ])
+        && request.resource.data.customer is map
+        && request.resource.data.customer.keys().hasOnly([
+          'firstName',
+          'lastName',
+          'phone',
+          'wilaya',
+          'note'
+        ])
+        && request.resource.data.customer.firstName is string
+        && request.resource.data.customer.lastName is string
+        && request.resource.data.customer.phone is string
+        && request.resource.data.customer.wilaya is string
+        && request.resource.data.items is list
+        && request.resource.data.items.size() > 0
+        && request.resource.data.items.size() <= 50
+        && request.resource.data.subtotal is number
+        && request.resource.data.deliveryPrice is number
+        && request.resource.data.total is number
+        && request.resource.data.status == 'new'
+        && request.resource.data.paymentMethod == 'cash_on_delivery'
+        && request.resource.data.createdAt == request.time;
+    }
+  }
+}

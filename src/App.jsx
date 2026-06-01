@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import './App.css'
 import Admin from './pages/Admin'
 import AdminLogin from './pages/AdminLogin'
@@ -10,6 +10,8 @@ import Collection from './pages/Collection'
 import Liked from './pages/Liked'
 import ProductDetail from './pages/ProductDetail'
 import AdminOrders from './pages/AdminOrders'
+import Search from './pages/Search'
+import { subscribeProducts } from './services/products'
 import backgroundImage from './assets/backgroud.jpg'
 import editorialVideo from './assets/editorial-video.mp4'
 import lookbookOne from './assets/lookbook-1.mp4'
@@ -28,6 +30,11 @@ const navItems = [
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [path, setPath] = useState(window.location.pathname)
+  const [searchTerm, setSearchTerm] = useState(
+    () => new URLSearchParams(window.location.search).get('q') || ''
+  )
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
+  const [searchProducts, setSearchProducts] = useState([])
   const productSlug = path.startsWith('/en/product/')
     ? path.replace('/en/product/', '')
     : path.startsWith('/product/')
@@ -37,11 +44,39 @@ function App() {
   useEffect(() => {
     function handlePopState() {
       setPath(window.location.pathname)
+      setSearchTerm(new URLSearchParams(window.location.search).get('q') || '')
     }
 
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
+
+  useEffect(() => {
+    const unsubscribe = subscribeProducts((list) => setSearchProducts(list.filter((product) => product.isPublished)))
+    return () => unsubscribe()
+  }, [])
+
+  const searchSuggestions = useMemo(() => {
+    const normalized = searchTerm.trim().toLowerCase()
+    const values = new Set()
+
+    searchProducts.forEach((product) => {
+      if (product.name) values.add(product.name)
+      if (product.productCategory) values.add(product.productCategory)
+      if (product.category) values.add(product.category)
+    })
+
+    return Array.from(values)
+      .filter((value) => !normalized || value.toLowerCase().includes(normalized))
+      .slice(0, 6)
+  }, [searchProducts, searchTerm])
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault()
+    const prepared = searchTerm.trim()
+    if (!prepared) return
+    window.location.assign(`/search?q=${encodeURIComponent(prepared)}`)
+  }
 
   return (
     <>
@@ -74,9 +109,29 @@ function App() {
               </nav>
 
               <div className="nav-actions">
-                <button className="icon-button" type="button" aria-label="Search">
-                  <span className="search-icon"></span>
-                </button>
+                <form className="site-search" onSubmit={handleSearchSubmit} role="search">
+                  <input
+                    type="search"
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => window.setTimeout(() => setIsSearchFocused(false), 160)}
+                    placeholder="Search"
+                    aria-label="Search products or collections"
+                  />
+                  <button className="icon-button" type="submit" aria-label="Search">
+                    <span className="search-icon"></span>
+                  </button>
+                  {isSearchFocused && searchSuggestions.length ? (
+                    <div className="site-search-suggestions">
+                      {searchSuggestions.map((suggestion) => (
+                        <a href={`/search?q=${encodeURIComponent(suggestion)}`} key={suggestion}>
+                          {suggestion}
+                        </a>
+                      ))}
+                    </div>
+                  ) : null}
+                </form>
               </div>
             </div>
 
@@ -106,6 +161,8 @@ function App() {
             <Contact />
           ) : path === '/collection' ? (
             <Collection />
+          ) : path === '/search' ? (
+            <Search />
           ) : (
             <main className="home-page" aria-label="ZHOR DZ home">
               <section className="home-hero" style={{ '--hero-bg': `url(${backgroundImage})` }}>

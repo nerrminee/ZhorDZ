@@ -409,6 +409,47 @@ textarea {
   margin-top: 0.5rem;
 }
 
+.collection-manager {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+  padding: 0.7rem;
+  border: 1px solid rgba(113, 107, 99, 0.14);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.collection-manager-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.collection-manager-row span {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.collection-manager-row small {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.collection-manager-row button {
+  border: 1px solid rgba(255, 61, 0, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 61, 0, 0.1);
+  color: #d84315;
+  padding: 0.45rem 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 @media (max-width: 620px) {
   .option-entry,
   .color-picker-entry {
@@ -723,6 +764,11 @@ textarea {
 .stock-badge.rupture {
   background: rgba(197, 48, 48, 0.12);
   color: #9b2c2c;
+}
+
+.stock-badge.category-badge {
+  background: rgba(216, 168, 32, 0.14);
+  color: #7a5810;
 }
 .card-description {
   font-size: 0.85rem;
