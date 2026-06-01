@@ -10,6 +10,11 @@ import Collection from './pages/Collection'
 import Liked from './pages/Liked'
 import ProductDetail from './pages/ProductDetail'
 import AdminOrders from './pages/AdminOrders'
+import backgroundImage from './assets/backgroud.jpg'
+import editorialVideo from './assets/editorial-video.mp4'
+import lookbookOne from './assets/lookbook-1.mp4'
+import lookbookTwo from './assets/lookbook-2.mp4'
+import lookbookThree from './assets/lookbook-3.mp4'
 
 const navItems = [
   { label: 'Acceuil', href: '/' },
@@ -102,22 +107,50 @@ function App() {
           ) : path === '/collection' ? (
             <Collection />
           ) : (
-            <main className="shop-preview" aria-label="Shop preview">
-              <div className="hero-welcome">
-                <p className="hero-subtitle">Bienvenue chez</p>
-                <h1 className="hero-title">
-                  <span className="hero-text">ZHOR</span>
-                  <span className="hero-text hero-dz">DZ</span>
-                </h1>
-                <div className="hero-actions">
-                  <a className="hero-button" href="/boutique">Tous les vêtements</a>
+            <main className="home-page" aria-label="ZHOR DZ home">
+              <section className="home-hero" style={{ '--hero-bg': `url(${backgroundImage})` }}>
+                <div className="home-hero-overlay"></div>
+                <div className="home-hero-copy">
+                  <p className="home-kicker">Nouvelle saison</p>
+                  <h1>ZHOR DZ</h1>
+                  <p>
+                    Robes lumineuses, textures douces et silhouettes pensees pour les beaux jours.
+                  </p>
+                  <div className="home-actions">
+                    <a className="home-primary-link" href="/boutique">Voir la boutique</a>
+                    <a className="home-secondary-link" href="/collection">Explorer la collection</a>
+                  </div>
                 </div>
-                <div className="hero-badges">
-                  <span>Élégance</span>
-                  <span>Qualité</span>
-                  <span>Authenticité</span>
+                <div className="home-video-frame" aria-label="Editorial video">
+                  <video src={editorialVideo} autoPlay muted loop playsInline poster={backgroundImage}></video>
                 </div>
-              </div>
+                <div className="home-marquee" aria-hidden="true">
+                  <span>Sunflower edit</span>
+                  <span>Summer dresses</span>
+                  <span>ZHOR DZ</span>
+                  <span>Natural elegance</span>
+                </div>
+              </section>
+
+              <section className="home-lookbook" aria-label="Lookbook videos">
+                <div className="home-section-heading">
+                  <p>Lookbook</p>
+                  <h2>Une collection en mouvement</h2>
+                </div>
+                <div className="lookbook-grid">
+                  {[lookbookOne, lookbookTwo, lookbookThree].map((video, index) => (
+                    <a
+                      className="lookbook-tile"
+                      href="/boutique"
+                      key={video}
+                      style={{ '--delay': `${index * 120}ms` }}
+                    >
+                      <video src={video} autoPlay muted loop playsInline></video>
+                      <span>{index === 0 ? 'Détails brodés' : index === 1 ? 'Éclat solaire' : 'Silhouette fluide'}</span>
+                    </a>
+                  ))}
+                </div>
+              </section>
             </main>
           )}
 

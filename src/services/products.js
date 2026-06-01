@@ -1,4 +1,4 @@
-import { db, storage, isFirebaseConfigured } from '../config/firebase'
+import { db, storage } from '../config/firebase'
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore'
 import { ref, deleteObject } from 'firebase/storage'
 
@@ -18,7 +18,6 @@ export function createProductSlug(name = '') {
 }
 
 export async function uploadImage(file, onProgress) {
-  if (!isFirebaseConfigured) throw new Error('Firebase not configured')
   if (!file) throw new Error('No file provided for upload')
 
   const formData = new FormData()
@@ -108,8 +107,6 @@ async function uploadImages(files = [], onProgress) {
 }
 
 export async function addProduct(productData) {
-  if (!isFirebaseConfigured) throw new Error('Firebase not configured')
-
   const {
     name,
     description,
@@ -171,7 +168,6 @@ export async function addProduct(productData) {
 }
 
 export async function getProducts() {
-  if (!isFirebaseConfigured) return []
   const q = query(collection(db, PRODUCTS_COLL), orderBy('createdAt', 'desc'))
   const snap = await getDocs(q)
   return snap.docs.map((d) => {
@@ -203,7 +199,6 @@ export async function getProducts() {
 }
 
 export function subscribeProducts(cb) {
-  if (!isFirebaseConfigured) return () => {}
   const q = query(collection(db, PRODUCTS_COLL), orderBy('createdAt', 'desc'))
   const unsub = onSnapshot(q, (snap) => {
     const docs = snap.docs.map((d) => {
@@ -238,8 +233,6 @@ export function subscribeProducts(cb) {
 }
 
 export async function updateProduct(id, updates = {}) {
-  if (!isFirebaseConfigured) throw new Error('Firebase not configured')
-
   const docRef = doc(db, PRODUCTS_COLL, id)
   const { file, files = [], removeImage, price } = updates
   const toUpdate = { ...updates }
@@ -293,7 +286,6 @@ export async function updateProduct(id, updates = {}) {
 }
 
 export async function deleteProduct(id, imagePath) {
-  if (!isFirebaseConfigured) throw new Error('Firebase not configured')
   const imagePaths = Array.isArray(imagePath) ? imagePath.filter(Boolean) : imagePath ? [imagePath] : []
 
   for (const path of imagePaths) {
