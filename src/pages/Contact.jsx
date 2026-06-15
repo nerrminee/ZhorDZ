@@ -35,19 +35,19 @@ function Contact() {
         <section className="contact-card">
           <div className="contact-row">
             <strong>Adresse</strong>
-            <span>123 Rue de la Mode, Alger, Algerie</span>
+            <span>Centre Ville, Mostaganem, Algérie</span>
           </div>
           <div className="contact-row">
-            <strong>Telephone</strong>
-            <span>+213 21 234 567</span>
+            <strong>Téléphone</strong>
+            <span>+213 555 00 00 00</span>
           </div>
           <div className="contact-row">
             <strong>Email</strong>
-            <span>contact@zhordz.com</span>
+            <span>contact@zhor.dz</span>
           </div>
           <div className="contact-row">
             <strong>Horaires</strong>
-            <span>Lundi - Vendredi : 10h00 - 19h00</span>
+            <span>Samedi - Jeudi : 10h00 - 19h00</span>
           </div>
         </section>
       </div>
