@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import '../components/AdminPanel.css'
 import { AuthContext } from '../context/AuthContextValue'
 import { deleteOrder, subscribeOrders } from '../services/orders'
@@ -18,6 +18,21 @@ function AdminOrders() {
 
   const selectedCount = selectedIds.length
   const allSelected = orders.length > 0 && selectedCount === orders.length
+  const orderStats = useMemo(() => {
+    const totalRevenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0)
+    const totalItems = orders.reduce(
+      (sum, order) => sum + (order.items || []).reduce((itemSum, item) => itemSum + Number(item.quantity || 1), 0),
+      0
+    )
+    const wilayas = new Set(orders.map((order) => order.customer?.wilaya).filter(Boolean)).size
+
+    return [
+      { label: 'Orders', value: orders.length },
+      { label: 'Revenue', value: formatPrice(totalRevenue) },
+      { label: 'Items', value: totalItems },
+      { label: 'Wilayas', value: wilayas },
+    ]
+  }, [orders])
 
   const toggleSelected = (orderId) => {
     setSelectedIds((current) =>
@@ -52,21 +67,37 @@ function AdminOrders() {
   if (!isAuthenticated) return null
 
   return (
-    <div className="admin-container">
-      <header className="admin-header">
-        <div className="logo-section">
-          <span className="logo-icon">Orders</span>
-          <h1>Orders</h1>
+    <div className="admin-container admin-orders-shell">
+      <header className="admin-header admin-console-header">
+        <div className="admin-header-copy">
+          <span className="admin-eyebrow">ZHOR order atelier</span>
+          <div className="logo-section">
+            <span className="logo-icon">ZHOR</span>
+            <h1>Orders</h1>
+          </div>
+          <p className="subtitle">Review customer requests, delivery details, and selected pieces in one composed view.</p>
         </div>
         <div className="admin-header-actions">
           <a className="edit-btn" href="/admin">Products</a>
+          <a className="cancel-btn" href="/">View store</a>
           <button type="button" onClick={logout} className="cancel-btn">Logout</button>
+        </div>
+        <div className="admin-stat-grid" aria-label="Orders overview">
+          {orderStats.map((stat) => (
+            <div className="admin-stat" key={stat.label}>
+              <span>{stat.label}</span>
+              <strong>{stat.value}</strong>
+            </div>
+          ))}
         </div>
       </header>
 
       <section className="orders-card admin-orders-page">
         <div className="orders-card-header">
-          <h2>Orders ({orders.length})</h2>
+          <div>
+            <span className="admin-eyebrow">Order list</span>
+            <h2>Customer orders</h2>
+          </div>
           <div className="orders-toolbar">
             <label className="order-select-all">
               <input
@@ -109,6 +140,7 @@ function AdminOrders() {
                     </div>
                   </div>
                   <div className="order-total-actions">
+                    <span className="order-total-label">Total</span>
                     <strong>{formatPrice(order.total)}</strong>
                     <button
                       type="button"
@@ -139,6 +171,7 @@ function AdminOrders() {
                   ))}
                 </div>
                 <div className="order-meta">
+                  <span>Products: {formatPrice(order.subtotal || 0)}</span>
                   <span>Livraison: {formatPrice(order.deliveryPrice)}</span>
                   <span>Cash on delivery</span>
                   {order.customer?.note ? <span>Note: {order.customer.note}</span> : null}

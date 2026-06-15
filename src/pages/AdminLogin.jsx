@@ -1,5 +1,6 @@
 import { useState, useContext } from 'react'
 import { AuthContext } from '../context/AuthContextValue'
+import '../components/AdminPanel.css'
 
 function AdminLogin() {
   const { login } = useContext(AuthContext)

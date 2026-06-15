@@ -7,7 +7,7 @@ import { formatPrice } from '../utils/cart'
 const DEFAULT_COLLECTIONS = ['Ensembles', 'Robes', 'Parfums', 'Accessoires']
 const DEFAULT_PRODUCT_CATEGORIES = ['Dress', 'Set', 'Perfume', 'Accessory', 'Abaya', 'Top']
 
-export default function AdminPanel() {
+export default function AdminPanel({ onLogout }) {
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [description, setDescription] = useState('')
@@ -62,6 +62,19 @@ export default function AdminPanel() {
     const productCategories = products.map((product) => product.productCategory).filter(Boolean)
     return Array.from(new Set([...customProductCategories, ...productCategories])).sort((a, b) => a.localeCompare(b))
   }, [customProductCategories, products])
+
+  const dashboardStats = useMemo(() => {
+    const inStock = products.filter((product) => product.isInStock ?? true).length
+    const published = products.filter((product) => product.isPublished ?? true).length
+    const collections = new Set(products.map((product) => product.category).filter(Boolean)).size
+
+    return [
+      { label: 'Products', value: products.length },
+      { label: 'Published', value: published },
+      { label: 'In stock', value: inStock },
+      { label: 'Collections', value: collections },
+    ]
+  }, [products])
 
   const addListItem = (value, setter, resetter) => {
     const prepared = value.trim()
@@ -290,12 +303,30 @@ export default function AdminPanel() {
 
   return (
     <div className="admin-container">
-      <header className="admin-header">
-        <div className="logo-section">
-          <span className="logo-icon">🛍️</span>
-          <h1>Store Console</h1>
+      <header className="admin-header admin-console-header">
+        <div className="admin-header-copy">
+          <span className="admin-eyebrow">ZHOR atelier console</span>
+          <div className="logo-section">
+            <span className="logo-icon">ZHOR</span>
+            <h1>Store Console</h1>
+          </div>
+          <p className="subtitle">Publish and manage the catalog with the same quiet precision as the boutique.</p>
         </div>
-        <p className="subtitle">Publish and manage your store catalog</p>
+        <div className="admin-header-actions">
+          <a href="/admin/orders" className="edit-btn">Orders</a>
+          <a href="/" className="cancel-btn">View store</a>
+          {onLogout ? (
+            <button type="button" onClick={onLogout} className="cancel-btn">Logout</button>
+          ) : null}
+        </div>
+        <div className="admin-stat-grid" aria-label="Catalog overview">
+          {dashboardStats.map((stat) => (
+            <div className="admin-stat" key={stat.label}>
+              <span>{stat.label}</span>
+              <strong>{stat.value}</strong>
+            </div>
+          ))}
+        </div>
       </header>
 
       <div className="admin-grid">
