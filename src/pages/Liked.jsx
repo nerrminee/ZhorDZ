@@ -109,7 +109,14 @@ function Liked() {
                       {inStock ? 'En stock' : 'En rupture'}
                     </span>
                     <div className="shop-card-meta">
-                      <span>{product.price ? formatPrice(product.price) : ''}</span>
+                      {product.isSale ? (
+                        <div className="product-price-group">
+                          <span className="old-price">{formatPrice(product.oldPrice)}</span>
+                          <span className="new-price">{formatPrice(product.price)}</span>
+                        </div>
+                      ) : (
+                        <span>{product.price ? formatPrice(product.price) : ''}</span>
+                      )}
                       <button
                         type="button"
                         className="shop-card-btn remove-from-wishlist"

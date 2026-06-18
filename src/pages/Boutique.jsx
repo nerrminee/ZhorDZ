@@ -146,7 +146,14 @@ function Boutique() {
                       {inStock ? 'En stock' : 'En rupture'}
                     </span>
                     <div className="shop-card-meta">
-                      <span>{p.price ? formatPrice(p.price) : ''}</span>
+                      {p.isSale ? (
+                        <div className="product-price-group">
+                          <span className="old-price">{formatPrice(p.oldPrice)}</span>
+                          <span className="new-price">{formatPrice(p.price)}</span>
+                        </div>
+                      ) : (
+                        <span>{p.price ? formatPrice(p.price) : ''}</span>
+                      )}
                       {isAuthenticated && !p.isPublished && (
                         <div className="shop-card-actions">
                           <button className="shop-card-btn" onClick={() => handlePublish(p.id)}>Publier</button>
