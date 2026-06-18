@@ -462,12 +462,13 @@
 .boutique-page {
   width: min(1200px, 100%);
   margin: 0 auto;
-  padding: 28px 0;
+  padding: 28px 40px;
 }
 
 .boutique-shell {
   display: grid;
   gap: 28px;
+  padding: 0 20px;
 }
 
 .boutique-header {
@@ -2151,6 +2152,10 @@
 @media (max-width: 720px) {
   .shop-grid {
     grid-template-columns: 1fr;
+  }
+
+  .shop-card {
+    gap: 28px;
   }
 
   .lookbook-grid {
