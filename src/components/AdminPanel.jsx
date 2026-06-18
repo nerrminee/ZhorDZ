@@ -40,6 +40,10 @@ export default function AdminPanel({ onLogout }) {
   const [editingId, setEditingId] = useState(null)
   const [editState, setEditState] = useState({})
   const [editImagePreviews, setEditImagePreviews] = useState([])
+  const [activeTab, setActiveTab] = useState('create')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterCollection, setFilterCollection] = useState('')
+  const [sortBy, setSortBy] = useState('newest')
 
   useEffect(() => {
     const unsubscribe = subscribeProducts((list) => setProducts(list))
@@ -77,6 +81,32 @@ export default function AdminPanel({ onLogout }) {
       { label: 'Collections', value: collections },
     ]
   }, [products])
+
+  const filteredProducts = useMemo(() => {
+    let filtered = products.filter((product) => {
+      const matchesSearch = searchQuery === '' ||
+        product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesCollection = filterCollection === '' || product.category === filterCollection
+      return matchesSearch && matchesCollection
+    })
+
+    if (sortBy === 'newest') {
+      filtered.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    } else if (sortBy === 'oldest') {
+      filtered.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
+    } else if (sortBy === 'name-asc') {
+      filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+    } else if (sortBy === 'name-desc') {
+      filtered.sort((a, b) => (b.name || '').localeCompare(a.name || ''))
+    } else if (sortBy === 'price-low') {
+      filtered.sort((a, b) => (a.price || 0) - (b.price || 0))
+    } else if (sortBy === 'price-high') {
+      filtered.sort((a, b) => (b.price || 0) - (a.price || 0))
+    }
+
+    return filtered
+  }, [products, searchQuery, filterCollection, sortBy])
 
   const addListItem = (value, setter, resetter) => {
     const prepared = value.trim()
@@ -323,10 +353,10 @@ export default function AdminPanel({ onLogout }) {
           <p className="subtitle">Publish and manage the catalog with the same quiet precision as the boutique.</p>
         </div>
         <div className="admin-header-actions">
-          <a href="/admin/orders" className="edit-btn">Orders</a>
-          <a href="/" className="cancel-btn">View store</a>
+          <a href="/admin/orders" className="edit-btn">📋 Orders</a>
+          <a href="/" className="cancel-btn">👁️ View store</a>
           {onLogout ? (
-            <button type="button" onClick={onLogout} className="cancel-btn">Logout</button>
+            <button type="button" onClick={onLogout} className="cancel-btn">🚪 Logout</button>
           ) : null}
         </div>
         <div className="admin-stat-grid" aria-label="Catalog overview">
@@ -339,164 +369,126 @@ export default function AdminPanel({ onLogout }) {
         </div>
       </header>
 
-      <div className="admin-grid">
+      {/* Admin Tabs */}
+      <div className="admin-tabs-container">
+        <div className="admin-tabs">
+          <button
+            className={`admin-tab ${activeTab === 'create' ? 'active' : ''}`}
+            onClick={() => setActiveTab('create')}
+          >
+            ➕ Add New Product
+          </button>
+          <button
+            className={`admin-tab ${activeTab === 'products' ? 'active' : ''}`}
+            onClick={() => setActiveTab('products')}
+          >
+            📦 Published Products ({products.length})
+          </button>
+        </div>
+      </div>
+
+      {/* Create Product Tab */}
+      {activeTab === 'create' && (
+        <div className="admin-content">
         <section className="form-card">
-          <h2>Publish New Product</h2>
+          <h2>📸 Product Information</h2>
           {message.text && <div className={`alert-message ${message.type}`}>{message.text}</div>}
           <form onSubmit={handleSubmit} className="admin-form">
-            <div className="form-group">
-              <label htmlFor="product-name">Product Name</label>
-              <input
-                id="product-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Cashmere Scented Candle"
-                required
-              />
-            </div>
 
-            <div className="form-row">
+            {/* Basic Info Section */}
+            <div className="form-section">
+              <h3 className="section-title">📝 Basic Information</h3>
               <div className="form-group">
-                <label htmlFor="product-price">{isSale ? 'Nouveau prix solde (DA)' : 'Price (DA)'}</label>
+                <label htmlFor="product-name">Product Name</label>
                 <input
-                  id="product-price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder="49.90"
+                  id="product-name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Cashmere Scented Candle"
                   required
                 />
               </div>
-              <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '4px' }}>
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={isSale}
-                    onChange={(e) => {
-                      setIsSale(e.target.checked)
-                      if (!e.target.checked) setOldPrice('')
-                    }}
-                  />
-                  <span>En solde (Sold)</span>
-                </label>
-              </div>
-            </div>
 
-            {isSale && (
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="product-old-price">Prix original (DA)</label>
+                  <label htmlFor="product-price">💰 {isSale ? 'Sale Price (DA)' : 'Price (DA)'}</label>
                   <input
-                    id="product-old-price"
+                    id="product-price"
                     type="number"
                     step="0.01"
                     min="0"
-                    value={oldPrice}
-                    onChange={(e) => setOldPrice(e.target.value)}
-                    placeholder="ex. 89.90"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="49.90"
                     required
                   />
                 </div>
-              </div>
-            )}
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="product-sizes">Sizes</label>
-                <div className="option-builder">
-                  <div className="option-entry">
+                <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '4px' }}>
+                  <label className="checkbox-label">
                     <input
-                      id="product-sizes"
-                      type="text"
-                      value={sizeDraft}
-                      onChange={(e) => setSizeDraft(e.target.value)}
-                      onKeyDown={(e) => handleDraftKeyDown(e, sizeDraft, setSizes, setSizeDraft)}
-                      placeholder="S, M, L, 38..."
+                      type="checkbox"
+                      checked={isSale}
+                      onChange={(e) => {
+                        setIsSale(e.target.checked)
+                        if (!e.target.checked) setOldPrice('')
+                      }}
                     />
-                    <button type="button" onClick={() => addListItem(sizeDraft, setSizes, setSizeDraft)}>Add size</button>
-                  </div>
-                  {sizes.length ? (
-                    <div className="option-chip-list" aria-label="Selected sizes">
-                      {sizes.map((size) => (
-                        <button type="button" key={size} onClick={() => removeListItem(size, setSizes)}>
-                          {size}<span aria-hidden="true">x</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
+                    <span>🏷️ On Sale</span>
+                  </label>
                 </div>
               </div>
-            </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="product-colors">Colors</label>
-                <div className="option-builder">
-                  <div className="option-entry">
+              {isSale && (
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="product-old-price">Original Price (DA)</label>
                     <input
-                      id="product-colors"
-                      type="text"
-                      value={colorDraft}
-                      onChange={(e) => setColorDraft(e.target.value)}
-                      onKeyDown={(e) => handleDraftKeyDown(e, colorDraft, setColors, setColorDraft)}
-                      placeholder="Beige, Gold, #c5a34f..."
+                      id="product-old-price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={oldPrice}
+                      onChange={(e) => setOldPrice(e.target.value)}
+                      placeholder="ex. 89.90"
+                      required
                     />
-                    <button type="button" onClick={() => addListItem(colorDraft, setColors, setColorDraft)}>Add color</button>
                   </div>
-                  <div className="color-picker-entry">
-                    <input
-                      type="color"
-                      value={colorPicker}
-                      onChange={(e) => setColorPicker(e.target.value)}
-                      aria-label="Choose precise color"
-                    />
-                    <span>{colorPicker}</span>
-                    <button type="button" onClick={() => addListItem(colorPicker, setColors, setColorDraft)}>Add precise color</button>
-                  </div>
-                  {colors.length ? (
-                    <div className="option-chip-list" aria-label="Selected colors">
-                      {colors.map((color) => (
-                        <button type="button" key={color} onClick={() => removeListItem(color, setColors)}>
-                          {color}<span aria-hidden="true">x</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
                 </div>
+              )}
+
+              <div className="form-group">
+                <label htmlFor="product-desc">📄 Description</label>
+                <textarea
+                  id="product-desc"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe the product features, texture, or mood."
+                  rows="3"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="product-detail-desc">📖 Detailed Description</label>
+                <textarea
+                  id="product-detail-desc"
+                  value={detailDescription}
+                  onChange={(e) => setDetailDescription(e.target.value)}
+                  placeholder="Longer product details shown on the product page."
+                  rows="3"
+                />
               </div>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="product-desc">Description</label>
-              <textarea
-                id="product-desc"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe the product features, texture, or mood."
-                rows="4"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="product-detail-desc">Details Page Description</label>
-              <textarea
-                id="product-detail-desc"
-                value={detailDescription}
-                onChange={(e) => setDetailDescription(e.target.value)}
-                placeholder="Longer product details shown on the product page."
-                rows="4"
-              />
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="product-category">Collection</label>
-                <select
-                  id="product-category"
+            {/* Categories & Type Section */}
+            <div className="form-section">
+              <h3 className="section-title">🏷️ Categories & Type</h3>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="product-category">Collection</label>
+                  <select
+                    id="product-category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                 >
@@ -551,112 +543,178 @@ export default function AdminPanel({ onLogout }) {
                     <option key={option} value={option}>{option}</option>
                   ))}
                 </select>
-                <div className="option-entry collection-entry">
-                  <input
-                    type="text"
-                    value={newProductCategory}
-                    onChange={(e) => setNewProductCategory(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key !== 'Enter') return
-                      e.preventDefault()
-                      handleAddProductCategory()
-                    }}
-                    placeholder="New product category"
-                    aria-label="New product category"
-                  />
-                  <button type="button" onClick={handleAddProductCategory}>Add category</button>
+              </div>
+            </div>
+            </div>
+
+            {/* Options Section */}
+            <div className="form-section">
+              <h3 className="section-title">👕 Sizes & Colors</h3>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="product-sizes">📏 Sizes</label>
+                  <div className="option-builder">
+                    <div className="option-entry">
+                      <input
+                        id="product-sizes"
+                        type="text"
+                        value={sizeDraft}
+                        onChange={(e) => setSizeDraft(e.target.value)}
+                        onKeyDown={(e) => handleDraftKeyDown(e, sizeDraft, setSizes, setSizeDraft)}
+                        placeholder="S, M, L, 38..."
+                      />
+                      <button type="button" onClick={() => addListItem(sizeDraft, setSizes, setSizeDraft)}>Add</button>
+                    </div>
+                    {sizes.length ? (
+                      <div className="option-chip-list" aria-label="Selected sizes">
+                        {sizes.map((size) => (
+                          <button type="button" key={size} onClick={() => removeListItem(size, setSizes)}>
+                            {size}<span aria-hidden="true">×</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="product-colors">🎨 Colors</label>
+                  <div className="option-builder">
+                    <div className="option-entry">
+                      <input
+                        id="product-colors"
+                        type="text"
+                        value={colorDraft}
+                        onChange={(e) => setColorDraft(e.target.value)}
+                        onKeyDown={(e) => handleDraftKeyDown(e, colorDraft, setColors, setColorDraft)}
+                        placeholder="Beige, Gold, #c5a34f..."
+                      />
+                      <button type="button" onClick={() => addListItem(colorDraft, setColors, setColorDraft)}>Add</button>
+                    </div>
+                    <div className="color-picker-entry">
+                      <input
+                        type="color"
+                        value={colorPicker}
+                        onChange={(e) => setColorPicker(e.target.value)}
+                        aria-label="Choose precise color"
+                      />
+                      <span>{colorPicker}</span>
+                      <button type="button" onClick={() => addListItem(colorPicker, setColors, setColorDraft)}>Add color</button>
+                    </div>
+                    {colors.length ? (
+                      <div className="option-chip-list" aria-label="Selected colors">
+                        {colors.map((color) => (
+                          <button type="button" key={color} onClick={() => removeListItem(color, setColors)}>
+                            {color}<span aria-hidden="true">×</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="form-row">
+            {/* Materials Section */}
+            <div className="form-section">
+              <h3 className="section-title">✨ Materials & Care</h3>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="product-fabric">Fabric</label>
+                  <input
+                    id="product-fabric"
+                    type="text"
+                    value={fabric}
+                    onChange={(e) => setFabric(e.target.value)}
+                    placeholder="Cotton blend"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="product-care">Care Instructions</label>
+                  <input
+                    id="product-care"
+                    type="text"
+                    value={care}
+                    onChange={(e) => setCare(e.target.value)}
+                    placeholder="Wash cold, dry flat"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Images Section */}
+            <div className="form-section">
+              <h3 className="section-title">📸 Product Images</h3>
               <div className="form-group">
-                <label htmlFor="product-fabric">Fabric</label>
-                <input
-                  id="product-fabric"
-                  type="text"
-                  value={fabric}
-                  onChange={(e) => setFabric(e.target.value)}
-                  placeholder="Cotton blend"
+                <label htmlFor="file-upload">Upload Images</label>
+                <div className={`upload-zone ${imagePreviews.length ? 'has-preview' : ''}`}>
+                  <input id="file-upload" type="file" accept="image/*" multiple onChange={handleImageChange} className="file-input-hidden" />
+                  <label htmlFor="file-upload" className="upload-label">
+                    {imagePreviews.length ? (
+                      <div className="image-preview-grid">
+                        {imagePreviews.map((preview, index) => (
+                          <div className="image-preview-container" key={preview}>
+                            <img src={preview} alt={`Preview ${index + 1}`} className="image-preview" />
+                            <div className="upload-overlay"><span>Change Images</span></div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="upload-placeholder">
+                        <span className="upload-icon">📸</span>
+                        <span className="upload-button-text">Upload Images</span>
+                        <span className="upload-hint">PNG, JPG, or WebP</span>
+                      </div>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="product-image-url">Or Paste Image URLs</label>
+                <textarea
+                  id="product-image-url"
+                  value={imageUrlInput}
+                  onChange={(e) => {
+                    const url = e.target.value
+                    setImageUrlInput(url)
+                    if (url.trim()) {
+                      setImagePreviews(url.split(/[\n,]+/).map((item) => item.trim()).filter(Boolean))
+                      setImages([])
+                    } else {
+                      setImagePreviews([])
+                    }
+                  }}
+                  placeholder="https://example.com/front.jpg&#10;https://example.com/back.jpg"
+                  rows="3"
                 />
               </div>
+            </div>
+
+            {/* Availability Section */}
+            <div className="form-section">
+              <h3 className="section-title">📦 Availability & Status</h3>
               <div className="form-group">
-                <label htmlFor="product-care">Care</label>
-                <input
-                  id="product-care"
-                  type="text"
-                  value={care}
-                  onChange={(e) => setCare(e.target.value)}
-                  placeholder="Wash cold, dry flat"
-                />
+                <label>Stock Status</label>
+                <div className="availability-toggle-group" role="group" aria-label="Product availability">
+                  <label className="availability-check">
+                    <input
+                      type="checkbox"
+                      checked={isInStock}
+                      onChange={() => setIsInStock(true)}
+                    />
+                    <span>✅ In stock</span>
+                  </label>
+                  <label className="availability-check">
+                    <input
+                      type="checkbox"
+                      checked={!isInStock}
+                      onChange={() => setIsInStock(false)}
+                    />
+                    <span>❌ Out of stock</span>
+                  </label>
+                </div>
               </div>
-            </div>
-
-            <div className="form-group">
-              <label>Availability</label>
-              <div className="availability-toggle-group" role="group" aria-label="Product availability">
-                <label className="availability-check">
-                  <input
-                    type="checkbox"
-                    checked={isInStock}
-                    onChange={() => setIsInStock(true)}
-                  />
-                  <span>In stock</span>
-                </label>
-                <label className="availability-check">
-                  <input
-                    type="checkbox"
-                    checked={!isInStock}
-                    onChange={() => setIsInStock(false)}
-                  />
-                  <span>Rupture</span>
-                </label>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="file-upload">Product Images</label>
-              <div className={`upload-zone ${imagePreviews.length ? 'has-preview' : ''}`}>
-                <input id="file-upload" type="file" accept="image/*" multiple onChange={handleImageChange} className="file-input-hidden" />
-                <label htmlFor="file-upload" className="upload-label">
-                  {imagePreviews.length ? (
-                    <div className="image-preview-grid">
-                      {imagePreviews.map((preview, index) => (
-                        <div className="image-preview-container" key={preview}>
-                          <img src={preview} alt={`Preview ${index + 1}`} className="image-preview" />
-                          <div className="upload-overlay"><span>Change Images</span></div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="upload-placeholder">
-                      <span className="upload-icon">📸</span>
-                      <span className="upload-button-text">Ajoute image</span>
-                      <span className="upload-hint">PNG, JPG, or WebP</span>
-                    </div>
-                  )}
-                </label>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="product-image-url">Or Paste Image URLs</label>
-              <textarea
-                id="product-image-url"
-                value={imageUrlInput}
-                onChange={(e) => {
-                  const url = e.target.value
-                  setImageUrlInput(url)
-                  if (url.trim()) {
-                    setImagePreviews(url.split(/[\n,]+/).map((item) => item.trim()).filter(Boolean))
-                    setImages([])
-                  } else {
-                    setImagePreviews([])
-                  }
-                }}
-                placeholder="https://example.com/front.jpg&#10;https://example.com/back.jpg"
-                rows="3"
-              />
             </div>
 
             {isSubmitting && (
@@ -671,27 +729,107 @@ export default function AdminPanel({ onLogout }) {
             )}
 
             <button type="submit" className={`submit-btn ${isSubmitting ? 'loading' : ''}`} disabled={isSubmitting}>
-              {isSubmitting ? 'Publishing...' : 'Publish Product'}
+              {isSubmitting ? '⏳ Publishing...' : '✨ Publish Product'}
             </button>
           </form>
         </section>
+        </div>
+      )}
 
+      {/* Products Tab */}
+      {activeTab === 'products' && (
         <section className="inventory-card">
-          <h2>Active Inventory ({products.length})</h2>
-          {products.length === 0 ? (
+          <div className="inventory-header">
+            <h2>📦 Published Products</h2>
+            <span className="product-count">{filteredProducts.length} of {products.length}</span>
+          </div>
+
+          {products.length > 0 && (
+            <div className="inventory-toolbar">
+              <div className="search-box">
+                <span>🔍</span>
+                <input
+                  type="text"
+                  placeholder="Search products by name or description..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="search-input"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="clear-search"
+                    aria-label="Clear search"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              <div className="filter-controls">
+                <select
+                  value={filterCollection}
+                  onChange={(e) => setFilterCollection(e.target.value)}
+                  className="filter-select"
+                  aria-label="Filter by collection"
+                >
+                  <option value="">📂 All Collections</option>
+                  {collectionOptions.map((col) => (
+                    <option key={col} value={col}>{col}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="filter-select"
+                  aria-label="Sort products"
+                >
+                  <option value="newest">⏱️ Newest First</option>
+                  <option value="oldest">📅 Oldest First</option>
+                  <option value="name-asc">A→Z Name</option>
+                  <option value="name-desc">Z→A Name</option>
+                  <option value="price-low">💰 Price: Low to High</option>
+                  <option value="price-high">💰 Price: High to Low</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {filteredProducts.length === 0 ? (
             <div className="empty-inventory">
-              <span className="empty-icon">📦</span>
-              <p>No products published yet. Create one to populate your store!</p>
+              {searchQuery || filterCollection ? (
+                <>
+                  <span className="empty-icon">🔍</span>
+                  <p>No products match your filters. Try adjusting your search.</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('')
+                      setFilterCollection('')
+                    }}
+                    className="reset-filters-btn"
+                  >
+                    Reset Filters
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="empty-icon">📦</span>
+                  <p>No products published yet. Create one to populate your store!</p>
+                </>
+              )}
             </div>
           ) : (
             <div className="products-grid">
-              {products.map((product) => (
+              {filteredProducts.map((product) => (
                 <div key={product.id} className="product-card">
                   <div className="card-image-wrapper">
                     {(product.images?.[0]?.url || product.imageUrl) ? (
                       <img src={product.images?.[0]?.url || product.imageUrl} alt={product.name} className="card-image" />
                     ) : null}
-                    {product.images?.length > 1 ? <span className="image-count">{product.images.length} images</span> : null}
+                    {product.images?.length > 1 ? <span className="image-count">🖼️ {product.images.length}</span> : null}
                   </div>
                   <div className="card-body">
                     {editingId === product.id ? (
@@ -706,18 +844,18 @@ export default function AdminPanel({ onLogout }) {
                               if (!e.target.checked) handleEditChange('oldPrice', '')
                             }}
                           />
-                          <span>En solde (Sold)</span>
+                          <span>🏷️ On Sale</span>
                         </label>
                         {editState.isSale && (
                           <input
                             type="number"
                             value={editState.oldPrice}
                             onChange={(e) => handleEditChange('oldPrice', e.target.value)}
-                            placeholder="Prix original (Old Price)"
-                            aria-label="Prix original"
+                            placeholder="Original Price"
+                            aria-label="Original Price"
                           />
                         )}
-                        <input type="number" value={editState.price} onChange={(e) => handleEditChange('price', e.target.value)} aria-label={editState.isSale ? 'Nouveau prix solde' : 'Product price'} placeholder={editState.isSale ? 'Nouveau prix solde' : 'Price'} />
+                        <input type="number" value={editState.price} onChange={(e) => handleEditChange('price', e.target.value)} aria-label={editState.isSale ? 'Sale Price' : 'Product price'} placeholder={editState.isSale ? 'Sale Price' : 'Price'} />
                         <textarea value={editState.description} onChange={(e) => handleEditChange('description', e.target.value)} aria-label="Product description" />
                         <textarea value={editState.detailDescription} onChange={(e) => handleEditChange('detailDescription', e.target.value)} aria-label="Product details" />
                         <input value={editState.category} onChange={(e) => handleEditChange('category', e.target.value)} aria-label="Product category" placeholder="Category" />
@@ -733,7 +871,7 @@ export default function AdminPanel({ onLogout }) {
                               checked={!!editState.isInStock}
                               onChange={() => handleEditChange('isInStock', true)}
                             />
-                            <span>In stock</span>
+                            <span>✅ In stock</span>
                           </label>
                           <label className="availability-check">
                             <input
@@ -741,7 +879,7 @@ export default function AdminPanel({ onLogout }) {
                               checked={!editState.isInStock}
                               onChange={() => handleEditChange('isInStock', false)}
                             />
-                            <span>Rupture</span>
+                            <span>❌ Out of stock</span>
                           </label>
                         </div>
                         <div className="edit-image-upload">
@@ -753,7 +891,7 @@ export default function AdminPanel({ onLogout }) {
                             onChange={handleEditImageChange}
                             className="edit-file-input-hidden"
                           />
-                          <label htmlFor={`edit-images-${product.id}`} className="add-image-btn">Ajoute image</label>
+                          <label htmlFor={`edit-images-${product.id}`} className="add-image-btn">📸 Upload Images</label>
                           <span className="edit-image-help">Upload one or more pictures from device</span>
                           {editImagePreviews.length ? (
                             <div className="edit-image-preview-grid">
@@ -765,7 +903,7 @@ export default function AdminPanel({ onLogout }) {
                         </div>
                         <textarea value={editState.imageUrls} onChange={(e) => handleEditChange('imageUrls', e.target.value)} aria-label="Product image URLs" placeholder="Image URLs, one per line" />
                         <div className="inventory-edit-actions">
-                          <button type="button" onClick={() => handleSaveEdit(product.id)} className="save-btn">Save</button>
+                          <button type="button" onClick={() => handleSaveEdit(product.id)} className="save-btn">💾 Save</button>
                           <button
                             type="button"
                             onClick={() => {
@@ -774,7 +912,7 @@ export default function AdminPanel({ onLogout }) {
                             }}
                             className="cancel-btn"
                           >
-                            Cancel
+                            ✕ Cancel
                           </button>
                         </div>
                       </div>
@@ -782,28 +920,28 @@ export default function AdminPanel({ onLogout }) {
                       <>
                         <h3 className="card-title">{product.name || 'Untitled'}</h3>
                         <span className={`stock-badge ${product.isInStock ? 'in-stock' : 'rupture'}`}>
-                          {product.isInStock ? 'In stock' : 'Rupture'}
+                          {product.isInStock ? '✅ In stock' : '❌ Out of stock'}
                         </span>
                         {product.isSale ? (
                           <div className="product-sale-price-group" style={{ marginBottom: '0.75rem' }}>
-                            <span className="admin-sale-badge">Sold</span>
+                            <span className="admin-sale-badge">🏷️ On Sale</span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <span className="old-price" style={{ textDecoration: 'line-through', color: '#8c7e72', fontSize: '0.9rem' }}>{formatPrice(product.oldPrice || 0)}</span>
                               <span className="new-price card-price" style={{ margin: 0 }}>{formatPrice(product.price || 0)}</span>
                             </div>
                           </div>
                         ) : (
-                          <p className="card-price">{formatPrice(product.price || 0)}</p>
+                          <p className="card-price">💰 {formatPrice(product.price || 0)}</p>
                         )}
-                        {product.productCategory ? <span className="stock-badge category-badge">{product.productCategory}</span> : null}
+                        {product.productCategory ? <span className="stock-badge category-badge">📂 {product.productCategory}</span> : null}
+                        {product.category ? <span className="stock-badge category-badge">🏷️ {product.category}</span> : null}
                         <p className="card-description">{product.description}</p>
-                        <p className="card-description">{product.detailDescription || product.category || 'No detail page fields yet.'}</p>
                         <div className="inventory-actions">
                           <button onClick={() => startEditing(product)} className="edit-btn" aria-label="Edit product">
-                            Edit Details
+                            ✏️ Edit
                           </button>
                           <button onClick={() => handleDelete(product.id)} className="delete-btn" aria-label="Delete product">
-                            Delete
+                            🗑️ Delete
                           </button>
                         </div>
                       </>
@@ -814,7 +952,7 @@ export default function AdminPanel({ onLogout }) {
             </div>
           )}
         </section>
-      </div>
+      )}
     </div>
   )
 }

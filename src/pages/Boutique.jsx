@@ -11,6 +11,8 @@ function Boutique() {
   const [loading, setLoading] = useState(true)
   const [likedIds, setLikedIds] = useLocalStorage('zhordz-liked', [])
   const [selectedOptions, setSelectedOptions] = useState({})
+  const [priceSort, setPriceSort] = useState(null)
+  const [imageIndexes, setImageIndexes] = useState({})
 
   const toggleLike = (id) => {
     setLikedIds((current) =>
@@ -52,8 +54,14 @@ function Boutique() {
 
   const { isAuthenticated } = useContext(AuthContext)
   const activeCollection = new URLSearchParams(window.location.search).get('collection') || ''
-  const visibleProducts = (isAuthenticated ? products : products.filter((p) => p.isPublished))
+  let visibleProducts = (isAuthenticated ? products : products.filter((p) => p.isPublished))
     .filter((p) => !activeCollection || p.category === activeCollection)
+
+  if (priceSort === 'asc') {
+    visibleProducts = [...visibleProducts].sort((a, b) => (a.price || 0) - (b.price || 0))
+  } else if (priceSort === 'desc') {
+    visibleProducts = [...visibleProducts].sort((a, b) => (b.price || 0) - (a.price || 0))
+  }
 
   const newProductIds = products
     .filter((p) => p.isPublished)
@@ -76,7 +84,20 @@ function Boutique() {
   const scrollProductImages = (productId, direction) => {
     const reel = document.getElementById(`product-reel-${productId}`)
     if (!reel) return
+
+    const currentIndex = imageIndexes[productId] || 0
+    const newIndex = Math.max(0, Math.min(currentIndex + direction, (reel.children.length || 1) - 1))
+    setImageIndexes(prev => ({ ...prev, [productId]: newIndex }))
+
     reel.scrollBy({ left: direction * reel.clientWidth, behavior: 'smooth' })
+  }
+
+  const goToImageIndex = (productId, index, imageCount) => {
+    const reel = document.getElementById(`product-reel-${productId}`)
+    if (!reel) return
+
+    setImageIndexes(prev => ({ ...prev, [productId]: index }))
+    reel.scrollBy({ left: (index - (imageIndexes[productId] || 0)) * reel.clientWidth, behavior: 'smooth' })
   }
 
   return (
@@ -87,7 +108,23 @@ function Boutique() {
             <p className="boutique-subtitle">Boutique</p>
             <h1>{activeCollection || 'Collection'}</h1>
           </div>
-          <p>Découvrez une sélection raffinée de parfums et de vêtements.</p>
+          <div className="boutique-header-right">
+            <p>Découvrez une sélection raffinée de parfums et de vêtements.</p>
+            <div className="price-filter-buttons">
+              <button
+                className={`price-filter-btn ${priceSort === 'asc' ? 'active' : ''}`}
+                onClick={() => setPriceSort(priceSort === 'asc' ? null : 'asc')}
+              >
+                ↑ Prix Croissant
+              </button>
+              <button
+                className={`price-filter-btn ${priceSort === 'desc' ? 'active' : ''}`}
+                onClick={() => setPriceSort(priceSort === 'desc' ? null : 'desc')}
+              >
+                ↓ Prix Décroissant
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="shop-grid">
@@ -134,7 +171,18 @@ function Boutique() {
                         <button type="button" onClick={() => scrollProductImages(p.id, 1)} aria-label="Image suivante">›</button>
                       </div>
                     ) : null}
-                    {productImages.length > 1 ? <span className="shop-image-hint">Défiler</span> : null}
+                    {productImages.length > 1 && (
+                      <div className="shop-image-dots">
+                        {productImages.map((_, dotIndex) => (
+                          <button
+                            key={dotIndex}
+                            className={`shop-image-dot ${imageIndexes[p.id] === dotIndex ? 'active' : ''}`}
+                            onClick={() => goToImageIndex(p.id, dotIndex, productImages.length)}
+                            aria-label={`Image ${dotIndex + 1}`}
+                          />
+                        ))}
+                      </div>
+                    )}
                     {isNew && <span className="product-badge new-badge">New</span>}
                     {p.isSale && <span className="product-badge sale-badge">Sold</span>}
                   </div>

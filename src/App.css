@@ -479,6 +479,41 @@
   flex-wrap: wrap;
 }
 
+.boutique-header-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.price-filter-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.price-filter-btn {
+  padding: 10px 16px;
+  border: 1px solid rgba(121, 96, 74, 0.22);
+  border-radius: 999px;
+  background: transparent;
+  color: #2e1f17;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+.price-filter-btn:hover {
+  background: rgba(121, 96, 74, 0.08);
+  transform: translateY(-1px);
+}
+
+.price-filter-btn.active {
+  background: #2b2018;
+  border-color: #2b2018;
+  color: #fff;
+}
+
 .boutique-subtitle {
   margin: 0 0 10px;
   letter-spacing: 0.32em;
@@ -1088,13 +1123,13 @@
 .shop-image-arrows button {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border: 1px solid rgba(255, 255, 255, 0.42);
   border-radius: 999px;
   background: rgba(46, 31, 23, 0.58);
   color: #fff;
-  font-size: 1.55rem;
+  font-size: 1.8rem;
   line-height: 1;
   cursor: pointer;
   pointer-events: auto;
@@ -1112,6 +1147,39 @@
 
 .shop-image-arrows button:hover {
   background: rgba(46, 31, 23, 0.82);
+}
+
+.shop-image-dots {
+  position: absolute;
+  z-index: 4;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.shop-image-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.4);
+  border: none;
+  cursor: pointer;
+  transition: all 180ms ease;
+  padding: 0;
+}
+
+.shop-image-dot:hover {
+  background: rgba(255, 255, 255, 0.7);
+  transform: scale(1.2);
+}
+
+.shop-image-dot.active {
+  background: #fff;
+  width: 10px;
+  height: 10px;
 }
 
 .shop-card-body {
@@ -2184,6 +2252,21 @@
 
   .boutique-header {
     align-items: flex-start;
+  }
+
+  .boutique-header-right {
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .price-filter-buttons {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .price-filter-btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .collections-grid {

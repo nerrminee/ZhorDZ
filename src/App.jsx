@@ -295,7 +295,7 @@ function App() {
                   <div className="relative mb-4 flex flex-col items-center">
                     <div className="font-heading tracking-tighter text-2xl text-warm-white/40 mb-2 logo-brand">ZHOR</div>
                     <div className="flex flex-col items-center gap-2">
-                      <span className="text-[7px] uppercase tracking-[0.5em] text-[#faf8f5]/60 [writing-mode:vertical-lr] rotate-180">Défiler</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#faf8f5]/60 animate-bounce"><path d="M12 5v14"></path><path d="M19 12l-7 7-7-7"></path></svg>
                       <div className="w-px h-10 bg-[#faf8f5]/20 relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-full bg-[#c6a77d] hero-indicator-scanner"></div>
                       </div>
@@ -305,7 +305,7 @@ function App() {
 
                 {/* Desktop Scroll Indicator */}
                 <div className="absolute bottom-10 left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center gap-4">
-                  <span className="text-[9px] uppercase tracking-[0.3em] text-[#111]/40 rotate-90 origin-left">Défiler</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#111]/40 animate-bounce"><path d="M12 5v14"></path><path d="M19 12l-7 7-7-7"></path></svg>
                   <div className="w-px h-12 bg-[#111]/15 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-full bg-[#c6a77d] hero-indicator-scanner"></div>
                   </div>
