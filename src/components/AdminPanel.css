@@ -1892,3 +1892,34 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+/* Sold / Sale Styles */
+.admin-sale-badge {
+  color: #d32f2f;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 42px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgba(113, 107, 99, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--text-primary);
+  text-transform: none;
+  cursor: pointer;
+  width: max-content;
+}
+
+.checkbox-label input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent-primary);
+}
+

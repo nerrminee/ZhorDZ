@@ -14,7 +14,7 @@ export function AuthProvider({ children }) {
       setIsAuthenticated(true)
       return { ok: true }
     }
-    return { ok: false, message: 'Invalid credentials' }
+    return { ok: false, message: 'Identifiants invalides' }
   }
 
   function logout() {

@@ -47,18 +47,18 @@ function Collection() {
   }, [products])
 
   return (
-    <main className="collections-page" aria-label="Collections page">
+    <main className="collections-page" aria-label="Page des collections">
       <section className="collections-hero">
         <p className="boutique-subtitle">Collections</p>
-        <h1>Explore every collection</h1>
-        <p>Discover each line through the products, colors, and textures already live in the boutique.</p>
+        <h1>Explorez chaque collection</h1>
+        <p>Découvrez chaque ligne à travers les produits, les couleurs et les textures déjà disponibles dans la boutique.</p>
       </section>
 
       {loading && !collections.length ? (
-        <div className="collections-empty">Loading collections...</div>
+        <div className="collections-empty">Chargement des collections...</div>
       ) : collections.length ? (
         <>
-          <section className="collections-showcase" aria-label="Featured collections">
+          <section className="collections-showcase" aria-label="Collections vedettes">
             {collections.slice(0, 3).map((collection, index) => {
               const heroProduct = collection.items[0]
               const heroImage = getProductImages(heroProduct)[0]
@@ -77,13 +77,13 @@ function Collection() {
             })}
           </section>
 
-          <section className="collections-grid" aria-label="Product collections">
+          <section className="collections-grid" aria-label="Collections de produits">
             {collections.map((collection, index) => {
               const previewProducts = collection.items.slice(0, 4)
 
               return (
                 <article className="collection-card" key={collection.name} style={{ '--delay': `${index * 120}ms` }}>
-                  <a href={`/boutique?collection=${encodeURIComponent(collection.name)}`} className="collection-media" aria-label={`Open ${collection.name}`}>
+                  <a href={`/boutique?collection=${encodeURIComponent(collection.name)}`} className="collection-media" aria-label={`Ouvrir ${collection.name}`}>
                     {previewProducts.map((product, imageIndex) => {
                       const image = getProductImages(product)[0]
                       return (
@@ -96,9 +96,9 @@ function Collection() {
                   <div className="collection-card-body">
                     <div>
                       <h2>{collection.name}</h2>
-                      <p>{collection.items.length} product{collection.items.length > 1 ? 's' : ''}</p>
+                      <p>{collection.items.length} produit{collection.items.length > 1 ? 's' : ''}</p>
                     </div>
-                    <a className="collection-link" href={`/boutique?collection=${encodeURIComponent(collection.name)}`}>View products</a>
+                    <a className="collection-link" href={`/boutique?collection=${encodeURIComponent(collection.name)}`}>Voir les produits</a>
                   </div>
                 </article>
               )
@@ -107,8 +107,8 @@ function Collection() {
         </>
       ) : (
         <div className="collections-empty">
-          <h2>No collections yet</h2>
-          <p>Add products with a collection from the admin panel to show them here.</p>
+          <h2>Aucune collection pour le moment</h2>
+          <p>Ajoutez des produits avec une collection depuis le panneau d'administration pour les afficher ici.</p>
         </div>
       )}
     </main>

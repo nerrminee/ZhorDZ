@@ -9,25 +9,25 @@ function Contact() {
   const reference = orderParams.get('reference')
 
   return (
-    <main className="shop-preview boutique-page contact-page" aria-label="Contact page">
+    <main className="shop-preview boutique-page contact-page" aria-label="Page de contact">
       <div className="hero-welcome">
         <div>
           <p className="hero-subtitle">Contact</p>
           <h1 className="hero-title">Contactez la boutique</h1>
         </div>
         <p className="hero-description">
-          Nous sommes la pour vous aider. Voici les informations pour nous joindre.
+          Nous sommes là pour vous aider. Voici les informations pour nous joindre.
         </p>
 
         {product ? (
-          <section className="contact-order-card" aria-label="Purchase request">
-            <p className="boutique-subtitle">Buy now</p>
+          <section className="contact-order-card" aria-label="Demande d'achat">
+            <p className="boutique-subtitle">Acheter maintenant</p>
             <h2>{product}</h2>
             <div className="contact-order-details">
               {color ? <span>Couleur: {color}</span> : null}
               {size ? <span>Taille: {size}</span> : null}
-              {quantity ? <span>Quantite: {quantity}</span> : null}
-              {reference ? <span>Reference: {reference}</span> : null}
+              {quantity ? <span>Quantité : {quantity}</span> : null}
+              {reference ? <span>Référence : {reference}</span> : null}
             </div>
           </section>
         ) : null}

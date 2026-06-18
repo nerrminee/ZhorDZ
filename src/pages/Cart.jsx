@@ -22,7 +22,7 @@ function Cart() {
   }
 
   return (
-    <main className="cart-page" aria-label="Cart page">
+    <main className="cart-page" aria-label="Page Panier">
       <div className="cart-shell">
         <section className="cart-panel">
           <p className="boutique-subtitle">Panier</p>
@@ -45,7 +45,7 @@ function Cart() {
                     <strong>{formatPrice(item.price)}</strong>
                   </div>
                   <div className="cart-item-actions">
-                    <div className="quantity-control" aria-label="Quantite">
+                    <div className="quantity-control" aria-label="Quantité">
                       <button type="button" onClick={() => updateQuantity(item.cartId, Number(item.quantity || 1) - 1)}>-</button>
                       <span>{item.quantity}</span>
                       <button type="button" onClick={() => updateQuantity(item.cartId, Number(item.quantity || 1) + 1)}>+</button>

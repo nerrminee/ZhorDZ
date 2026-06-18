@@ -55,6 +55,11 @@ function Boutique() {
   const visibleProducts = (isAuthenticated ? products : products.filter((p) => p.isPublished))
     .filter((p) => !activeCollection || p.category === activeCollection)
 
+  const newProductIds = products
+    .filter((p) => p.isPublished)
+    .slice(0, 3)
+    .map((p) => p.id)
+
   async function handlePublish(id) {
     try {
       await updateProduct(id, { isPublished: true })
@@ -75,14 +80,14 @@ function Boutique() {
   }
 
   return (
-    <main className="shop-preview boutique-page" aria-label="Boutique page">
+    <main className="shop-preview boutique-page" aria-label="Page Boutique">
       <div className="boutique-shell">
         <div className="boutique-header">
           <div>
-            <p className="boutique-subtitle">Shop</p>
+            <p className="boutique-subtitle">Boutique</p>
             <h1>{activeCollection || 'Collection'}</h1>
           </div>
-          <p>Decouvrez une selection raffinee de parfums et de vetements.</p>
+          <p>Découvrez une sélection raffinée de parfums et de vêtements.</p>
         </div>
 
         <div className="shop-grid">
@@ -93,7 +98,7 @@ function Boutique() {
                 <div className="shop-card-body">
                   <span className="shop-card-tag">Nouveau</span>
                   <h2>Produit {index + 1}</h2>
-                  <p>Un produit elegant avec une silhouette epuree et une finition premium.</p>
+                  <p>Un produit élégant avec une silhouette épurée et une finition premium.</p>
                   <div className="shop-card-meta">
                     <span>8900 DA</span>
                     <button className="shop-card-btn">Voir</button>
@@ -109,6 +114,7 @@ function Boutique() {
               const activeColor = selected.color || p.colors?.[0] || ''
               const activeSize = selected.size || p.sizes?.[0] || ''
               const inStock = p.isInStock ?? true
+              const isNew = newProductIds.includes(p.id)
 
               return (
                 <article className="shop-card" key={p.id || index} style={{ animationDelay: `${index * 80}ms` }}>
@@ -123,86 +129,29 @@ function Boutique() {
                       ) : null}
                     </a>
                     {productImages.length > 1 ? (
-                      <div className="shop-image-arrows" aria-label="Product image controls">
-                        <button type="button" onClick={() => scrollProductImages(p.id, -1)} aria-label="Previous image">‹</button>
-                        <button type="button" onClick={() => scrollProductImages(p.id, 1)} aria-label="Next image">›</button>
+                      <div className="shop-image-arrows" aria-label="Contrôles de l'image du produit">
+                        <button type="button" onClick={() => scrollProductImages(p.id, -1)} aria-label="Image précédente">‹</button>
+                        <button type="button" onClick={() => scrollProductImages(p.id, 1)} aria-label="Image suivante">›</button>
                       </div>
                     ) : null}
-                    {productImages.length > 1 ? <span className="shop-image-hint">Scroll</span> : null}
+                    {productImages.length > 1 ? <span className="shop-image-hint">Défiler</span> : null}
+                    {isNew && <span className="product-badge new-badge">New</span>}
+                    {p.isSale && <span className="product-badge sale-badge">Sold</span>}
                   </div>
                   <div className="shop-card-body">
                     <h2>
                       <a className="product-title-link" href={productUrl}>{p.name}</a>
                     </h2>
                     <span className={`product-stock-pill ${inStock ? 'in-stock' : 'rupture'}`}>
-                      {inStock ? 'In stock' : 'Rupture'}
+                      {inStock ? 'En stock' : 'En rupture'}
                     </span>
-                    <p>{p.description}</p>
-                    {(p.fabric || p.care) ? (
-                      <div className="shop-card-details">
-                        {p.fabric ? (
-                          <span><strong>Fabric</strong>{p.fabric}</span>
-                        ) : null}
-                        {p.care ? (
-                          <span><strong>Care</strong>{p.care}</span>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    {(p.colors?.length || p.sizes?.length) ? (
-                      <div className="shop-card-options" aria-label="Product options">
-                        {p.colors?.length ? (
-                          <div className="shop-color-list" aria-label="Available colors">
-                            {p.colors.map((color) => (
-                              <button
-                                type="button"
-                                key={color}
-                                className={`color-swatch ${activeColor === color ? 'is-selected' : ''}`}
-                                style={{ '--swatch-color': getColorValue(color) }}
-                                aria-label={`Select ${color}`}
-                                title={color}
-                                onClick={() => selectOption(p.id, 'color', color)}
-                              />
-                            ))}
-                          </div>
-                        ) : null}
-                        {p.sizes?.length ? (
-                          <div className="shop-size-list" aria-label="Available sizes">
-                            {p.sizes.map((size) => (
-                              <button
-                                type="button"
-                                key={size}
-                                className={activeSize === size ? 'is-selected' : ''}
-                                onClick={() => selectOption(p.id, 'size', size)}
-                              >
-                                {size}
-                              </button>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
                     <div className="shop-card-meta">
                       <span>{p.price ? formatPrice(p.price) : ''}</span>
-                      <div className="shop-card-actions">
-                        <button
-                          type="button"
-                          className={`like-toggle ${isLiked(p.id) ? 'liked' : ''}`}
-                          aria-label={isLiked(p.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                          onClick={() => toggleLike(p.id)}
-                        >
-                          {isLiked(p.id) ? '♥' : '♡'}
-                        </button>
-                        {isAuthenticated && !p.isPublished ? (
+                      {isAuthenticated && !p.isPublished && (
+                        <div className="shop-card-actions">
                           <button className="shop-card-btn" onClick={() => handlePublish(p.id)}>Publier</button>
-                        ) : (
-                          <>
-                            <button className="shop-card-btn" type="button" onClick={() => buyProduct(p, activeColor, activeSize)} disabled={!inStock}>
-                              {inStock ? 'Buy' : 'Rupture'}
-                            </button>
-                            <a className="shop-card-btn" href={productUrl}>Voir</a>
-                          </>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </article>

@@ -111,23 +111,23 @@ function Search() {
   }, [publishedProducts, query])
 
   return (
-    <main className="search-page" aria-label="Search results">
+    <main className="search-page" aria-label="Résultats de recherche">
       <section className="search-hero">
-        <p className="boutique-subtitle">Search</p>
-        <h1>{displayQuery ? `Results for "${displayQuery}"` : 'Search the boutique'}</h1>
+        <p className="boutique-subtitle">Recherche</p>
+        <h1>{displayQuery ? `Résultats pour "${displayQuery}"` : 'Rechercher dans la boutique'}</h1>
         <form className="search-hero-form" onSubmit={submitSearch} role="search">
           <span className="search-icon"></span>
           <input
             type="search"
             value={localSearch}
             onChange={(event) => setLocalSearch(event.target.value)}
-            placeholder="Search dresses, collections, categories..."
-            aria-label="Search products, collections, or categories"
+            placeholder="Rechercher des robes, des collections, des catégories..."
+            aria-label="Rechercher des produits, des collections ou des catégories"
           />
-          <button type="submit">Search</button>
+          <button type="submit">Rechercher</button>
         </form>
         {searchSuggestions.length ? (
-          <div className="search-suggestions" aria-label="Search suggestions">
+          <div className="search-suggestions" aria-label="Suggestions de recherche">
             {searchSuggestions.map((suggestion) => (
               <a href={`/search?q=${encodeURIComponent(suggestion)}`} key={suggestion}>
                 {suggestion}
@@ -140,16 +140,16 @@ function Search() {
       {loading ? (
         <div className="elegant-loader" role="status" aria-live="polite">
           <span></span>
-          <strong>Searching the collection</strong>
+          <strong>Recherche dans la collection</strong>
         </div>
       ) : !query ? (
         <div className="collections-empty">
-          <h2>Type a search term</h2>
-          <p>Search by product name, collection, color, fabric, or description.</p>
+          <h2>Saisissez un terme de recherche</h2>
+          <p>Recherchez par nom de produit, collection, couleur, tissu ou description.</p>
         </div>
       ) : (
         <>
-          <section className="search-section" aria-label="Matching collections">
+          <section className="search-section" aria-label="Collections correspondantes">
             <div className="search-section-title">
               <h2>Collections</h2>
               <span>{matchedCollections.length}</span>
@@ -167,20 +167,20 @@ function Search() {
                       {image ? <img src={image} alt={collection.name} /> : null}
                       <div>
                         <strong>{collection.name}</strong>
-                        <span>{collection.items.length} product{collection.items.length > 1 ? 's' : ''}</span>
+                        <span>{collection.items.length} produit{collection.items.length > 1 ? 's' : ''}</span>
                       </div>
                     </a>
                   )
                 })}
               </div>
             ) : (
-              <p className="search-empty-line">No collection matched this search.</p>
+              <p className="search-empty-line">Aucune collection ne correspond à cette recherche.</p>
             )}
           </section>
 
-          <section className="search-section" aria-label="Matching products">
+          <section className="search-section" aria-label="Produits correspondants">
             <div className="search-section-title">
-              <h2>Products</h2>
+              <h2>Produits</h2>
               <span>{matchedProducts.length}</span>
             </div>
             {matchedProducts.length ? (
@@ -198,14 +198,24 @@ function Search() {
                         <span>{product.productCategory || product.category || DEFAULT_COLLECTION}</span>
                         <strong>{product.name}</strong>
                         <p>{product.description}</p>
-                        <em>{formatPrice(product.price)}</em>
+                        {product.isSale ? (
+                          <div className="product-sale-price-group" style={{ marginTop: '4px' }}>
+                            <span className="sale-text">Sold</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span className="old-price">{formatPrice(product.oldPrice)}</span>
+                              <em className="new-price" style={{ margin: 0 }}>{formatPrice(product.price)}</em>
+                            </div>
+                          </div>
+                        ) : (
+                          <em>{formatPrice(product.price)}</em>
+                        )}
                       </div>
                     </a>
                   )
                 })}
               </div>
             ) : (
-              <p className="search-empty-line">No product matched this search.</p>
+              <p className="search-empty-line">Aucun produit ne correspond à cette recherche.</p>
             )}
           </section>
         </>

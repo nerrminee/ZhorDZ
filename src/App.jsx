@@ -13,6 +13,8 @@ import AdminOrders from './pages/AdminOrders'
 import Search from './pages/Search'
 import { subscribeProducts } from './services/products'
 import backgroundImage from './assets/backgroud.jpg'
+import { getProductImages } from './utils/productOptions'
+import { formatPrice } from './utils/cart'
 import editorialVideo from './assets/editorial-video.mp4'
 import lookbookOne from './assets/lookbook-1.mp4'
 import lookbookTwo from './assets/lookbook-2.mp4'
@@ -101,6 +103,9 @@ function App() {
     '/boutique', '/panier', '/checkout', '/liked', '/contact', '/collection', '/search'
   ].includes(path) && !path.startsWith('/admin')
 
+  // Filter sold products for the home page bottom section
+  const soldProducts = searchProducts.filter((p) => p.isSale)
+
   return (
     <>
       <div className="noise"></div>
@@ -127,13 +132,13 @@ function App() {
                 <button 
                   className="md:hidden p-2 transition-colors nav-burger-btn"
                   onClick={() => setIsMenuOpen(true)}
-                  aria-label="Open menu"
+                  aria-label="Ouvrir le menu"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
                 </button>
                 <div className="hidden md:flex items-center gap-8">
-                  <a className="text-[10px] uppercase tracking-[0.3em] nav-link-custom" href="/" onClick={(e) => navigateTo('/', e)}>Home</a>
-                  <a className="text-[10px] uppercase tracking-[0.3em] nav-link-custom" href="/boutique" onClick={(e) => navigateTo('/boutique', e)}>Shop</a>
+                  <a className="text-[10px] uppercase tracking-[0.3em] nav-link-custom" href="/" onClick={(e) => navigateTo('/', e)}>Accueil</a>
+                  <a className="text-[10px] uppercase tracking-[0.3em] nav-link-custom" href="/boutique" onClick={(e) => navigateTo('/boutique', e)}>Boutique</a>
                   <a className="text-[10px] uppercase tracking-[0.3em] nav-link-custom" href="/collection" onClick={(e) => navigateTo('/collection', e)}>Collections</a>
                 </div>
               </div>
@@ -150,22 +155,22 @@ function App() {
                 <a className="hidden md:block text-[10px] uppercase tracking-[0.3em] nav-link-custom" href="/contact" onClick={(e) => navigateTo('/contact', e)}>Contact</a>
                 
                 {/* Search Toggle */}
-                <button className="p-2 -mr-2 md:mr-0 hover:text-[#c6a77d] transition-colors" onClick={() => setIsSearchOpen(true)} aria-label="Search">
+                <button className="p-2 -mr-2 md:mr-0 hover:text-[#c6a77d] transition-colors" onClick={() => setIsSearchOpen(true)} aria-label="Rechercher">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>
                 </button>
                 
                 {/* Liked / Wishlist */}
-                <a className="p-2 -mr-2 md:mr-0 hover:text-[#c6a77d] transition-colors relative" href="/liked" onClick={(e) => navigateTo('/liked', e)} aria-label="Wishlist">
+                <a className="p-2 -mr-2 md:mr-0 hover:text-[#c6a77d] transition-colors relative" href="/liked" onClick={(e) => navigateTo('/liked', e)} aria-label="Favoris">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"></path></svg>
                 </a>
                 
                 {/* Admin / Login */}
-                <a className="p-2 -mr-2 md:mr-0 hover:text-[#c6a77d] transition-colors" href="/admin/login" onClick={(e) => navigateTo('/admin/login', e)} aria-label="Admin Profile">
+                <a className="p-2 -mr-2 md:mr-0 hover:text-[#c6a77d] transition-colors" href="/admin/login" onClick={(e) => navigateTo('/admin/login', e)} aria-label="Profil Admin">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 </a>
                 
                 {/* Cart */}
-                <a className="p-2 -mr-2 md:mr-0 hover:text-[#c6a77d] transition-colors" href="/panier" onClick={(e) => navigateTo('/panier', e)} aria-label="Shopping Cart">
+                <a className="p-2 -mr-2 md:mr-0 hover:text-[#c6a77d] transition-colors" href="/panier" onClick={(e) => navigateTo('/panier', e)} aria-label="Panier">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 10a4 4 0 0 1-8 0"></path><path d="M3.103 6.034h17.794"></path><path d="M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z"></path></svg>
                 </a>
               </div>
@@ -176,13 +181,13 @@ function App() {
           <div className={`mobile-nav-drawer-new ${isMenuOpen ? 'is-open' : ''}`}>
             <div className="flex justify-between items-center mb-20">
               <div className="font-heading tracking-tighter text-2xl logo-brand">ZHOR</div>
-              <button className="p-2 hover:text-[#c6a77d] transition-colors" onClick={() => setIsMenuOpen(false)} aria-label="Close menu">
+              <button className="p-2 hover:text-[#c6a77d] transition-colors" onClick={() => setIsMenuOpen(false)} aria-label="Fermer le menu">
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
               </button>
             </div>
             <div className="flex flex-col gap-10 mobile-drawer-links">
-              <a className="text-4xl font-heading" href="/" onClick={(e) => navigateTo('/', e)}>Home</a>
-              <a className="text-4xl font-heading" href="/boutique" onClick={(e) => navigateTo('/boutique', e)}>Shop</a>
+              <a className="text-4xl font-heading" href="/" onClick={(e) => navigateTo('/', e)}>Accueil</a>
+              <a className="text-4xl font-heading" href="/boutique" onClick={(e) => navigateTo('/boutique', e)}>Boutique</a>
               <a className="text-4xl font-heading" href="/collection" onClick={(e) => navigateTo('/collection', e)}>Collections</a>
               <a className="text-4xl font-heading" href="/contact" onClick={(e) => navigateTo('/contact', e)}>Contact</a>
             </div>
@@ -200,7 +205,7 @@ function App() {
             <div className="fixed inset-0 bg-[#faf8f5]/98 z-[100] flex flex-col p-10 search-overlay-fullscreen">
               <div className="flex justify-between items-center mb-20 max-w-[1800px] mx-auto w-full">
                 <div className="font-heading tracking-tighter text-2xl logo-brand">ZHOR</div>
-                <button className="p-2 hover:text-[#c6a77d] transition-colors" onClick={() => setIsSearchOpen(false)} aria-label="Close search">
+                <button className="p-2 hover:text-[#c6a77d] transition-colors" onClick={() => setIsSearchOpen(false)} aria-label="Fermer la recherche">
                   <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
                 </button>
               </div>
@@ -211,7 +216,7 @@ function App() {
                     autoFocus
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
-                    placeholder="Search collections, dresses..."
+                    placeholder="Rechercher des collections, des robes..."
                     className="w-full bg-transparent border-none outline-none font-heading text-3xl md:text-5xl text-foreground placeholder:text-foreground/20 search-fullscreen-input"
                   />
                   <button type="submit" className="p-2 hover:text-[#c6a77d] transition-colors">
@@ -262,7 +267,7 @@ function App() {
                 
                 {/* Desktop Image Background */}
                 <div className="absolute inset-0 z-0 hidden md:block hero-image-container">
-                  <img src={backgroundImage} alt="Zhor Hero Background" className="w-full h-full object-cover brightness-[0.85] hero-desktop-image"/>
+                  <img src={backgroundImage} alt="Arrière-plan Zhor" className="w-full h-full object-cover brightness-[0.85] hero-desktop-image"/>
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#faf8f5]/20 pointer-events-none"></div>
                 </div>
 
@@ -278,9 +283,9 @@ function App() {
                 <div className="relative z-10 text-center px-4 hero-content-wrapper">
                   <div className="hero-text-anim">
                     <h1 className="font-heading text-[16vw] md:text-[11vw] leading-none text-[#111] tracking-tighter logo-brand hero-title-heading">ZHOR</h1>
-                    <p className="mt-6 font-sans text-xs md:text-sm uppercase tracking-[0.4em] text-[#111]/70 max-w-2xl mx-auto">Style, chic &amp; quality at your service</p>
+                    <p className="mt-6 font-sans text-xs md:text-sm uppercase tracking-[0.4em] text-[#111]/70 max-w-2xl mx-auto">Style, chic &amp; qualité à votre service</p>
                     <a href="/boutique" onClick={(e) => navigateTo('/boutique', e)}>
-                      <button className="mt-12 px-10 py-4 bg-[#111] text-[#faf8f5] font-sans text-[10px] uppercase tracking-[0.3em] hover:bg-[#c6a77d] transition-colors duration-500 btn-hero-explore">All Clothing</button>
+                      <button className="mt-12 px-10 py-4 bg-[#111] text-[#faf8f5] font-sans text-[10px] uppercase tracking-[0.3em] hover:bg-[#c6a77d] transition-colors duration-500 btn-hero-explore">Tous les vêtements</button>
                     </a>
                   </div>
                 </div>
@@ -290,7 +295,7 @@ function App() {
                   <div className="relative mb-4 flex flex-col items-center">
                     <div className="font-heading tracking-tighter text-2xl text-warm-white/40 mb-2 logo-brand">ZHOR</div>
                     <div className="flex flex-col items-center gap-2">
-                      <span className="text-[7px] uppercase tracking-[0.5em] text-[#faf8f5]/60 [writing-mode:vertical-lr] rotate-180">Scroll</span>
+                      <span className="text-[7px] uppercase tracking-[0.5em] text-[#faf8f5]/60 [writing-mode:vertical-lr] rotate-180">Défiler</span>
                       <div className="w-px h-10 bg-[#faf8f5]/20 relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-full bg-[#c6a77d] hero-indicator-scanner"></div>
                       </div>
@@ -300,7 +305,7 @@ function App() {
 
                 {/* Desktop Scroll Indicator */}
                 <div className="absolute bottom-10 left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center gap-4">
-                  <span className="text-[9px] uppercase tracking-[0.3em] text-[#111]/40 rotate-90 origin-left">Scroll</span>
+                  <span className="text-[9px] uppercase tracking-[0.3em] text-[#111]/40 rotate-90 origin-left">Défiler</span>
                   <div className="w-px h-12 bg-[#111]/15 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-full bg-[#c6a77d] hero-indicator-scanner"></div>
                   </div>
@@ -378,7 +383,7 @@ function App() {
                           </div>
                           <h3 className="font-heading text-2xl text-[#faf8f5] mb-2">Collection Automne</h3>
                           <div className="flex items-center gap-3">
-                            <p className="text-[10px] uppercase tracking-[0.3em] text-[#c6a77d] font-sans">Watch</p>
+                            <p className="text-[10px] uppercase tracking-[0.3em] text-[#c6a77d] font-sans">Regarder</p>
                             <span className="w-8 h-px bg-[#c6a77d]/50"></span>
                           </div>
                         </div>
@@ -400,7 +405,7 @@ function App() {
                           </div>
                           <h3 className="font-heading text-2xl text-[#faf8f5] mb-2">Dans l'Atelier</h3>
                           <div className="flex items-center gap-3">
-                            <p className="text-[10px] uppercase tracking-[0.3em] text-[#c6a77d] font-sans">Watch</p>
+                            <p className="text-[10px] uppercase tracking-[0.3em] text-[#c6a77d] font-sans">Regarder</p>
                             <span className="w-8 h-px bg-[#c6a77d]/50"></span>
                           </div>
                         </div>
@@ -422,7 +427,7 @@ function App() {
                           </div>
                           <h3 className="font-heading text-2xl text-[#faf8f5] mb-2">La Boutique</h3>
                           <div className="flex items-center gap-3">
-                            <p className="text-[10px] uppercase tracking-[0.3em] text-[#c6a77d] font-sans">Watch</p>
+                            <p className="text-[10px] uppercase tracking-[0.3em] text-[#c6a77d] font-sans">Regarder</p>
                             <span className="w-8 h-px bg-[#c6a77d]/50"></span>
                           </div>
                         </div>
@@ -432,6 +437,58 @@ function App() {
                   </div>
                 </div>
               </section>
+
+              {/* Nos Pièces en Solde */}
+              {soldProducts.length > 0 && (
+                <section className="py-32 bg-[#faf8f5] border-t border-[#111]/5 home-sold-section">
+                  <div className="max-w-[1800px] mx-auto px-4 md:px-10">
+                    <header className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-8">
+                      <div>
+                        <span className="text-[10px] uppercase tracking-[0.5em] text-[#d93838] mb-4 block font-sans">Offres Spéciales</span>
+                        <h2 className="font-heading text-4xl md:text-5xl text-[#111] tracking-tight font-bold">Nos Pièces en Solde</h2>
+                      </div>
+                      <div>
+                        <a className="group flex items-center gap-4 text-[10px] uppercase tracking-widest text-[#111] hover:text-[#c6a77d] transition-colors font-sans" href="/boutique">
+                          Voir toute la boutique
+                          <span className="w-12 h-px bg-[#111] group-hover:bg-[#c6a77d] transition-colors"></span>
+                        </a>
+                      </div>
+                    </header>
+
+                    <div className="shop-grid">
+                      {soldProducts.map((p, index) => {
+                        const productUrl = `/en/product/${encodeURIComponent(p.slug || p.id)}`
+                        const productImages = getProductImages(p)
+                        const inStock = p.isInStock ?? true
+
+                        return (
+                          <article className="shop-card" key={p.id || index} style={{ animationDelay: `${index * 80}ms` }}>
+                            <div className="shop-card-image">
+                              <a className="shop-card-link" href={productUrl}>
+                                {productImages.length ? (
+                                  <img src={productImages[0]} alt={p.name} className="w-full h-full object-cover" />
+                                ) : null}
+                              </a>
+                              <span className="product-badge sale-badge">Sold</span>
+                            </div>
+                            <div className="shop-card-body">
+                              <h2>
+                                <a className="product-title-link" href={productUrl}>{p.name}</a>
+                              </h2>
+                              <span className={`product-stock-pill ${inStock ? 'in-stock' : 'rupture'}`}>
+                                {inStock ? 'En stock' : 'En rupture'}
+                              </span>
+                              <div className="shop-card-meta">
+                                <span>{p.price ? formatPrice(p.price) : ''}</span>
+                              </div>
+                            </div>
+                          </article>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </section>
+              )}
 
             </main>
           )}
@@ -443,14 +500,14 @@ function App() {
                 <div className="md:col-span-1">
                   <div className="font-heading tracking-tighter text-4xl mb-6 logo-brand footer-brand-title">ZHOR</div>
                   <p className="text-[#faf8f5]/60 font-sans text-sm leading-relaxed max-w-xs">
-                    ZHOR | Maison de Haute Couture<br/>Style, chic &amp; quality at your service<br/>Fast Delivery 🇩🇿
+                    ZHOR | Maison de Haute Couture<br/>Style, chic &amp; qualité à votre service<br/>Livraison Rapide 🇩🇿
                   </p>
                 </div>
                 <div className="md:col-span-1">
                   <h4 className="text-[10px] uppercase tracking-[0.4em] text-[#c6a77d] mb-8 font-bold">Navigation</h4>
                   <ul className="space-y-4 list-none p-0 footer-nav-links">
-                    <li><a className="text-sm font-sans hover:text-[#c6a77d] transition-colors" href="/" onClick={(e) => navigateTo('/', e)}>Home</a></li>
-                    <li><a className="text-sm font-sans hover:text-[#c6a77d] transition-colors" href="/boutique" onClick={(e) => navigateTo('/boutique', e)}>Shop</a></li>
+                    <li><a className="text-sm font-sans hover:text-[#c6a77d] transition-colors" href="/" onClick={(e) => navigateTo('/', e)}>Accueil</a></li>
+                    <li><a className="text-sm font-sans hover:text-[#c6a77d] transition-colors" href="/boutique" onClick={(e) => navigateTo('/boutique', e)}>Boutique</a></li>
                     <li><a className="text-sm font-sans hover:text-[#c6a77d] transition-colors" href="/collection" onClick={(e) => navigateTo('/collection', e)}>Collections</a></li>
                     <li><a className="text-sm font-sans hover:text-[#c6a77d] transition-colors" href="/contact" onClick={(e) => navigateTo('/contact', e)}>Contact</a></li>
                   </ul>
@@ -465,7 +522,7 @@ function App() {
                 </div>
               </div>
               <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-[#faf8f5]/10 gap-8">
-                <p className="text-[9px] uppercase tracking-widest text-[#faf8f5]/40 font-sans">© {new Date().getFullYear()} <span className="font-heading tracking-tight">ZHOR</span>. ALL RIGHTS RESERVED.</p>
+                <p className="text-[9px] uppercase tracking-widest text-[#faf8f5]/40 font-sans">© {new Date().getFullYear()} <span className="font-heading tracking-tight">ZHOR</span>. TOUS DROITS RÉSERVÉS.</p>
                 <div className="flex gap-8 text-[9px] uppercase tracking-widest text-[#faf8f5]/40 font-sans footer-bottom-links">
                   <a className="hover:text-white transition-colors" href="#">Politique de Confidentialité</a>
                   <a className="hover:text-white transition-colors" href="#">Mentions Légales</a>

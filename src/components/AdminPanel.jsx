@@ -28,6 +28,8 @@ export default function AdminPanel({ onLogout }) {
   const [customProductCategories, setCustomProductCategories] = useLocalStorage('zhordz-product-categories', DEFAULT_PRODUCT_CATEGORIES)
   const [images, setImages] = useState([])
   const [imageUrlInput, setImageUrlInput] = useState('')
+  const [isSale, setIsSale] = useState(false)
+  const [oldPrice, setOldPrice] = useState('')
 
   const [imagePreviews, setImagePreviews] = useState([])
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -178,6 +180,8 @@ export default function AdminPanel({ onLogout }) {
       await addProduct({
         name,
         price,
+        isSale,
+        oldPrice: isSale ? oldPrice : 0,
         description,
         detailDescription,
         category,
@@ -196,6 +200,8 @@ export default function AdminPanel({ onLogout }) {
 
       setName('')
       setPrice('')
+      setIsSale(false)
+      setOldPrice('')
       setDescription('')
       setDetailDescription('')
       setCategory('')
@@ -242,6 +248,8 @@ export default function AdminPanel({ onLogout }) {
     setEditState({
       name: product.name || product.title || '',
       price: product.price || '',
+      isSale: product.isSale ?? false,
+      oldPrice: product.oldPrice || '',
       description: product.description || '',
       detailDescription: product.detailDescription || product.details || '',
       category: product.category || '',
@@ -290,6 +298,8 @@ export default function AdminPanel({ onLogout }) {
         sizes: editState.sizes.split(',').map((item) => item.trim()).filter(Boolean),
         colors: editState.colors.split(',').map((item) => item.trim()).filter(Boolean),
         isInStock: !!editState.isInStock,
+        isSale: !!editState.isSale,
+        oldPrice: editState.isSale ? (Number(editState.oldPrice) || 0) : 0,
       })
       setEditingId(null)
       setEditState({})
@@ -348,7 +358,7 @@ export default function AdminPanel({ onLogout }) {
 
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="product-price">Price (DA)</label>
+                <label htmlFor="product-price">{isSale ? 'Nouveau prix solde (DA)' : 'Price (DA)'}</label>
                 <input
                   id="product-price"
                   type="number"
@@ -360,6 +370,40 @@ export default function AdminPanel({ onLogout }) {
                   required
                 />
               </div>
+              <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '4px' }}>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={isSale}
+                    onChange={(e) => {
+                      setIsSale(e.target.checked)
+                      if (!e.target.checked) setOldPrice('')
+                    }}
+                  />
+                  <span>En solde (Sold)</span>
+                </label>
+              </div>
+            </div>
+
+            {isSale && (
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="product-old-price">Prix original (DA)</label>
+                  <input
+                    id="product-old-price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={oldPrice}
+                    onChange={(e) => setOldPrice(e.target.value)}
+                    placeholder="ex. 89.90"
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="form-row">
               <div className="form-group">
                 <label htmlFor="product-sizes">Sizes</label>
                 <div className="option-builder">
@@ -653,7 +697,27 @@ export default function AdminPanel({ onLogout }) {
                     {editingId === product.id ? (
                       <div className="inventory-edit-form">
                         <input value={editState.name} onChange={(e) => handleEditChange('name', e.target.value)} aria-label="Product name" />
-                        <input type="number" value={editState.price} onChange={(e) => handleEditChange('price', e.target.value)} aria-label="Product price" />
+                        <label className="checkbox-label" style={{ margin: '4px 0' }}>
+                          <input
+                            type="checkbox"
+                            checked={!!editState.isSale}
+                            onChange={(e) => {
+                              handleEditChange('isSale', e.target.checked)
+                              if (!e.target.checked) handleEditChange('oldPrice', '')
+                            }}
+                          />
+                          <span>En solde (Sold)</span>
+                        </label>
+                        {editState.isSale && (
+                          <input
+                            type="number"
+                            value={editState.oldPrice}
+                            onChange={(e) => handleEditChange('oldPrice', e.target.value)}
+                            placeholder="Prix original (Old Price)"
+                            aria-label="Prix original"
+                          />
+                        )}
+                        <input type="number" value={editState.price} onChange={(e) => handleEditChange('price', e.target.value)} aria-label={editState.isSale ? 'Nouveau prix solde' : 'Product price'} placeholder={editState.isSale ? 'Nouveau prix solde' : 'Price'} />
                         <textarea value={editState.description} onChange={(e) => handleEditChange('description', e.target.value)} aria-label="Product description" />
                         <textarea value={editState.detailDescription} onChange={(e) => handleEditChange('detailDescription', e.target.value)} aria-label="Product details" />
                         <input value={editState.category} onChange={(e) => handleEditChange('category', e.target.value)} aria-label="Product category" placeholder="Category" />
@@ -720,7 +784,17 @@ export default function AdminPanel({ onLogout }) {
                         <span className={`stock-badge ${product.isInStock ? 'in-stock' : 'rupture'}`}>
                           {product.isInStock ? 'In stock' : 'Rupture'}
                         </span>
-                        <p className="card-price">{formatPrice(product.price || 0)}</p>
+                        {product.isSale ? (
+                          <div className="product-sale-price-group" style={{ marginBottom: '0.75rem' }}>
+                            <span className="admin-sale-badge">Sold</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span className="old-price" style={{ textDecoration: 'line-through', color: '#8c7e72', fontSize: '0.9rem' }}>{formatPrice(product.oldPrice || 0)}</span>
+                              <span className="new-price card-price" style={{ margin: 0 }}>{formatPrice(product.price || 0)}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="card-price">{formatPrice(product.price || 0)}</p>
+                        )}
                         {product.productCategory ? <span className="stock-badge category-badge">{product.productCategory}</span> : null}
                         <p className="card-description">{product.description}</p>
                         <p className="card-description">{product.detailDescription || product.category || 'No detail page fields yet.'}</p>

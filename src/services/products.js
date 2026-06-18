@@ -125,6 +125,8 @@ export async function addProduct(productData) {
     imageUrls = [],
     isPublished = true,
     onUploadProgress,
+    isSale = false,
+    oldPrice = 0,
   } = productData
 
   const preparedSizes = prepareList(sizes)
@@ -153,6 +155,8 @@ export async function addProduct(productData) {
     fabric: (fabric || '').trim(),
     care: (care || '').trim(),
     price: Number(price) || 0,
+    isSale: !!isSale,
+    oldPrice: Number(oldPrice) || 0,
     sizes: preparedSizes,
     colors: preparedColors,
     availability: isInStock ? 'in-stock' : 'rupture',
@@ -187,6 +191,8 @@ export async function getProducts() {
       care: data.care || '',
       slug: data.slug || createProductSlug(data.name || data.title || ''),
       price: data.price || 0,
+      isSale: data.isSale ?? false,
+      oldPrice: data.oldPrice || 0,
       imageUrl: data.imageUrl || data.image_url || null,
       image_url: data.image_url || data.imageUrl || null,
       imagePath: data.imagePath || null,
@@ -219,6 +225,8 @@ export function subscribeProducts(cb) {
         care: data.care || '',
         slug: data.slug || createProductSlug(data.name || data.title || ''),
         price: data.price || 0,
+        isSale: data.isSale ?? false,
+        oldPrice: data.oldPrice || 0,
         imageUrl: data.imageUrl || data.image_url || null,
         image_url: data.image_url || data.imageUrl || null,
         imagePath: data.imagePath || null,
@@ -243,6 +251,14 @@ export async function updateProduct(id, updates = {}) {
 
   if (price !== undefined) {
     toUpdate.price = Number(price) || 0
+  }
+
+  if (updates.oldPrice !== undefined) {
+    toUpdate.oldPrice = Number(updates.oldPrice) || 0
+  }
+
+  if (updates.isSale !== undefined) {
+    toUpdate.isSale = !!updates.isSale
   }
 
   if (typeof toUpdate.name === 'string') {

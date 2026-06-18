@@ -27,9 +27,9 @@ function AdminOrders() {
     const wilayas = new Set(orders.map((order) => order.customer?.wilaya).filter(Boolean)).size
 
     return [
-      { label: 'Orders', value: orders.length },
-      { label: 'Revenue', value: formatPrice(totalRevenue) },
-      { label: 'Items', value: totalItems },
+      { label: 'Commandes', value: orders.length },
+      { label: 'Revenu', value: formatPrice(totalRevenue) },
+      { label: 'Articles', value: totalItems },
       { label: 'Wilayas', value: wilayas },
     ]
   }, [orders])
@@ -49,16 +49,16 @@ function AdminOrders() {
     const preparedIds = orderIds.filter(Boolean)
     if (!preparedIds.length) return
 
-    const label = preparedIds.length === 1 ? 'this order' : `${preparedIds.length} orders`
-    if (!window.confirm(`Delete ${label}?`)) return
+    const label = preparedIds.length === 1 ? 'cette commande' : `${preparedIds.length} commandes`
+    if (!window.confirm(`Supprimer ${label} ?`)) return
 
     setIsDeleting(true)
     try {
       await Promise.all(preparedIds.map((orderId) => deleteOrder(orderId)))
       setSelectedIds((current) => current.filter((id) => !preparedIds.includes(id)))
     } catch (error) {
-      console.error('Failed to delete orders:', error)
-      window.alert(`Failed to delete orders: ${error.message}`)
+      console.error('Échec de la suppression des commandes :', error)
+      window.alert(`Échec de la suppression des commandes : ${error.message}`)
     } finally {
       setIsDeleting(false)
     }
@@ -70,19 +70,19 @@ function AdminOrders() {
     <div className="admin-container admin-orders-shell">
       <header className="admin-header admin-console-header">
         <div className="admin-header-copy">
-          <span className="admin-eyebrow">ZHOR order atelier</span>
+          <span className="admin-eyebrow">Atelier des commandes ZHOR</span>
           <div className="logo-section">
             <span className="logo-icon">ZHOR</span>
-            <h1>Orders</h1>
+            <h1>Commandes</h1>
           </div>
-          <p className="subtitle">Review customer requests, delivery details, and selected pieces in one composed view.</p>
+          <p className="subtitle">Examinez les demandes des clients, les détails de livraison et les pièces sélectionnées dans une vue d'ensemble.</p>
         </div>
         <div className="admin-header-actions">
-          <a className="edit-btn" href="/admin">Products</a>
-          <a className="cancel-btn" href="/">View store</a>
-          <button type="button" onClick={logout} className="cancel-btn">Logout</button>
+          <a className="edit-btn" href="/admin">Produits</a>
+          <a className="cancel-btn" href="/">Voir la boutique</a>
+          <button type="button" onClick={logout} className="cancel-btn">Déconnexion</button>
         </div>
-        <div className="admin-stat-grid" aria-label="Orders overview">
+        <div className="admin-stat-grid" aria-label="Aperçu des commandes">
           {orderStats.map((stat) => (
             <div className="admin-stat" key={stat.label}>
               <span>{stat.label}</span>
@@ -95,8 +95,8 @@ function AdminOrders() {
       <section className="orders-card admin-orders-page">
         <div className="orders-card-header">
           <div>
-            <span className="admin-eyebrow">Order list</span>
-            <h2>Customer orders</h2>
+            <span className="admin-eyebrow">Liste des commandes</span>
+            <h2>Commandes clients</h2>
           </div>
           <div className="orders-toolbar">
             <label className="order-select-all">
@@ -106,7 +106,7 @@ function AdminOrders() {
                 onChange={toggleAll}
                 disabled={!orders.length || isDeleting}
               />
-              <span>Select all</span>
+              <span>Tout sélectionner</span>
             </label>
             <button
               type="button"
@@ -114,7 +114,7 @@ function AdminOrders() {
               disabled={!selectedCount || isDeleting}
               onClick={() => handleDeleteOrders(selectedIds)}
             >
-              {isDeleting ? 'Deleting...' : `Delete selected (${selectedCount})`}
+              {isDeleting ? 'Suppression...' : `Supprimer la sélection (${selectedCount})`}
             </button>
           </div>
         </div>
@@ -131,7 +131,7 @@ function AdminOrders() {
                         checked={selectedIds.includes(order.id)}
                         onChange={() => toggleSelected(order.id)}
                         disabled={isDeleting}
-                        aria-label={`Select order ${order.id}`}
+                        aria-label={`Sélectionner la commande ${order.id}`}
                       />
                     </label>
                     <div>
@@ -148,7 +148,7 @@ function AdminOrders() {
                       onClick={() => handleDeleteOrders(order.id)}
                       disabled={isDeleting}
                     >
-                      Delete
+                      Supprimer
                     </button>
                   </div>
                 </div>
@@ -161,7 +161,7 @@ function AdminOrders() {
                       <div>
                         <h4>{item.name}</h4>
                         <p>
-                          Qty {item.quantity}
+                          Qté {item.quantity}
                           {item.color ? ` / ${item.color}` : ''}
                           {item.size ? ` / ${item.size}` : ''}
                         </p>
@@ -171,9 +171,9 @@ function AdminOrders() {
                   ))}
                 </div>
                 <div className="order-meta">
-                  <span>Products: {formatPrice(order.subtotal || 0)}</span>
-                  <span>Livraison: {formatPrice(order.deliveryPrice)}</span>
-                  <span>Cash on delivery</span>
+                  <span>Produits : {formatPrice(order.subtotal || 0)}</span>
+                  <span>Livraison : {formatPrice(order.deliveryPrice)}</span>
+                  <span>Paiement à la livraison</span>
                   {order.customer?.note ? <span>Note: {order.customer.note}</span> : null}
                 </div>
               </article>
@@ -181,7 +181,7 @@ function AdminOrders() {
           </div>
         ) : (
           <div className="empty-inventory">
-            <p>No orders yet.</p>
+            <p>Aucune commande pour le moment.</p>
           </div>
         )}
       </section>

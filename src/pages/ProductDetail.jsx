@@ -54,7 +54,7 @@ function ProductDetail({ slug }) {
 
   if (loading && products.length === 0) {
     return (
-      <main className="product-detail-page" aria-label="Product detail page">
+      <main className="product-detail-page" aria-label="Page de détail du produit">
         <div className="product-detail-shell product-detail-loading">Chargement du produit...</div>
       </main>
     )
@@ -62,11 +62,11 @@ function ProductDetail({ slug }) {
 
   if (!product || (!product.isPublished && !isAuthenticated)) {
     return (
-      <main className="product-detail-page" aria-label="Product detail page">
+      <main className="product-detail-page" aria-label="Page de détail du produit">
         <div className="product-detail-shell product-not-found">
           <p className="boutique-subtitle">Produit</p>
           <h1>Produit introuvable</h1>
-          <a className="hero-button" href="/boutique">Retour a la boutique</a>
+          <a className="hero-button" href="/boutique">Retour à la boutique</a>
         </div>
       </main>
     )
@@ -95,9 +95,9 @@ function ProductDetail({ slug }) {
   }
 
   return (
-    <main className="product-detail-page" aria-label="Product detail page">
+    <main className="product-detail-page" aria-label="Page de détail du produit">
       <div className="product-detail-shell">
-        <nav className="product-breadcrumb" aria-label="Breadcrumb">
+        <nav className="product-breadcrumb" aria-label="Fil d'Ariane">
           <a href="/">Accueil</a>
           <span>/</span>
           <a href="/boutique">Boutique</a>
@@ -111,14 +111,14 @@ function ProductDetail({ slug }) {
               {activeImage ? <img src={activeImage} alt={product.name} /> : null}
             </div>
             {productImages.length > 1 ? (
-              <div className="product-thumbnails" aria-label="Product images">
+              <div className="product-thumbnails" aria-label="Images du produit">
                 {productImages.map((image, index) => (
                   <button
                     type="button"
                     key={image}
                     className={(activeImage || productImages[0]) === image ? 'is-selected' : ''}
                     onClick={() => setSelectedImage(image)}
-                    aria-label={`View image ${index + 1}`}
+                    aria-label={`Voir l'image ${index + 1}`}
                   >
                     <img src={image} alt="" />
                   </button>
@@ -131,9 +131,17 @@ function ProductDetail({ slug }) {
             {product.category ? <p className="product-category">{product.category}</p> : null}
             <h1>{product.name}</h1>
             <span className={`product-stock-pill detail ${inStock ? 'in-stock' : 'rupture'}`}>
-              {inStock ? 'In stock' : 'Rupture'}
+              {inStock ? 'En stock' : 'En rupture'}
             </span>
-            <p className="product-price">{product.price ? formatPrice(product.price) : ''}</p>
+            {product.isSale ? (
+              <div className="product-price-sale-container">
+                <span className="sale-text" style={{ border: '1px solid #d32f2f', padding: '2px 8px', borderRadius: '4px' }}>Sold</span>
+                <span className="old-price" style={{ fontSize: '1.1rem' }}>{formatPrice(product.oldPrice)}</span>
+                <span className="product-price" style={{ fontSize: '1.35rem' }}>{formatPrice(product.price)}</span>
+              </div>
+            ) : (
+              <p className="product-price">{product.price ? formatPrice(product.price) : ''}</p>
+            )}
             <p className="product-summary">{product.description}</p>
 
             {product.colors?.length ? (
@@ -147,7 +155,7 @@ function ProductDetail({ slug }) {
                       className={`color-option ${activeColor === color ? 'is-selected' : ''}`}
                       style={{ '--swatch-color': getColorValue(color) }}
                       onClick={() => setSelectedColor(color)}
-                      aria-label={`Selectionner ${color}`}
+                      aria-label={`Sélectionner ${color}`}
                       title={color}
                     >
                       <span>{color}</span>
@@ -176,14 +184,14 @@ function ProductDetail({ slug }) {
             ) : null}
 
             <div className="product-purchase-row">
-              <div className="quantity-control" aria-label="Quantite">
+              <div className="quantity-control" aria-label="Quantité">
                 <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))}>-</button>
                 <span>{quantity}</span>
                 <button type="button" onClick={() => setQuantity((value) => value + 1)}>+</button>
               </div>
               <button type="button" className="add-cart-btn" onClick={addToCart} disabled={!inStock}>Ajouter au panier</button>
               <button type="button" className="add-cart-btn buy-now-btn" onClick={buyNow} disabled={!inStock}>
-                {inStock ? 'Buy now' : 'Rupture'}
+                {inStock ? 'Acheter maintenant' : 'En rupture'}
               </button>
               <button
                 type="button"
@@ -199,13 +207,13 @@ function ProductDetail({ slug }) {
               <div className="product-detail-notes">
                 {product.detailDescription ? (
                   <section>
-                    <h2>Details</h2>
+                    <h2>Détails</h2>
                     <p>{product.detailDescription}</p>
                   </section>
                 ) : null}
                 {product.fabric ? (
                   <section>
-                    <h2>Matiere</h2>
+                    <h2>Matière</h2>
                     <p>{product.fabric}</p>
                   </section>
                 ) : null}

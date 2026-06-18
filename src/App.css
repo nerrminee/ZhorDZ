@@ -980,12 +980,15 @@
 
 .shop-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 24px;
 }
 
 .shop-card {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
   gap: 18px;
   background: rgba(255, 255, 255, 0.76);
   border: 1px solid rgba(121, 96, 74, 0.12);

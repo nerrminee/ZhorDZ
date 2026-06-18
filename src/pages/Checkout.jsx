@@ -42,13 +42,13 @@ function Checkout() {
     }
 
     if (!customer.firstName.trim() || !customer.lastName.trim() || !customer.phone.trim() || !customer.wilaya) {
-      setError('Veuillez remplir le nom, le prenom, le telephone et la wilaya.')
+      setError('Veuillez remplir le nom, le prénom, le téléphone et la wilaya.')
       return
     }
 
     const phone = customer.phone.replace(/\s/g, '')
     if (!/^(\+213|0)(5|6|7)[0-9]{8}$/.test(phone)) {
-      setError('Veuillez entrer un numero de telephone algerien valide.')
+      setError('Veuillez entrer un numéro de téléphone algérien valide.')
       return
     }
 
@@ -76,17 +76,17 @@ function Checkout() {
 
       setItems([])
       setCustomer(initialCustomer)
-      setMessage('Votre commande a ete confirmee. Paiement en espece a la livraison.')
+      setMessage('Votre commande a été confirmée. Paiement en espèces à la livraison.')
     } catch (err) {
       console.error(err)
-      setError(`Impossible de confirmer la commande: ${err.message}`)
+      setError(`Impossible de confirmer la commande : ${err.message}`)
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <main className="checkout-page" aria-label="Checkout page">
+    <main className="checkout-page" aria-label="Page de commande">
       <div className="checkout-shell">
         <section className="checkout-form-panel">
           <p className="boutique-subtitle">Commande</p>
@@ -102,13 +102,13 @@ function Checkout() {
                 <input value={customer.lastName} onChange={(e) => handleChange('lastName', e.target.value)} required />
               </label>
               <label>
-                Prenom
+                Prénom
                 <input value={customer.firstName} onChange={(e) => handleChange('firstName', e.target.value)} required />
               </label>
             </div>
 
             <label>
-              Numero de telephone algerien
+              Numéro de téléphone algérien
               <input
                 value={customer.phone}
                 onChange={(e) => handleChange('phone', e.target.value)}
@@ -120,7 +120,7 @@ function Checkout() {
             <label>
               Wilaya
               <select value={customer.wilaya} onChange={(e) => handleChange('wilaya', e.target.value)} required>
-                <option value="">Selectionner une wilaya</option>
+                <option value="">Sélectionner une wilaya</option>
                 {ALGERIA_WILAYAS.map((wilaya) => (
                   <option key={wilaya} value={wilaya}>{wilaya}</option>
                 ))}
@@ -132,12 +132,12 @@ function Checkout() {
               <textarea
                 value={customer.note}
                 onChange={(e) => handleChange('note', e.target.value)}
-                placeholder="Adresse precise, horaires preferes..."
+                placeholder="Adresse précise, horaires préférés..."
                 rows="4"
               />
             </label>
 
-            <p className="cash-delivery-note">Le paiement se fait en espece a la livraison.</p>
+            <p className="cash-delivery-note">Le paiement se fait en espèces à la livraison.</p>
 
             <button className="confirm-order-btn" type="submit" disabled={isSubmitting || !items.length}>
               {isSubmitting ? 'Confirmation...' : 'Confirmer la commande'}
@@ -145,8 +145,8 @@ function Checkout() {
           </form>
         </section>
 
-        <aside className="order-summary-panel" aria-label="Order summary">
-          <h2>Recapitulatif</h2>
+        <aside className="order-summary-panel" aria-label="Récapitulatif de la commande">
+          <h2>Récapitulatif</h2>
           {items.length ? (
             <div className="summary-items">
               {items.map((item) => (
@@ -161,14 +161,14 @@ function Checkout() {
                       {item.color && item.size ? ' / ' : null}
                       {item.size ? `Taille: ${item.size}` : null}
                     </p>
-                    <p>Quantite: {item.quantity}</p>
+                    <p>Quantité : {item.quantity}</p>
                   </div>
                   <strong>{formatPrice(Number(item.price) * Number(item.quantity || 1))}</strong>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="empty-summary">Aucun produit selectionne.</p>
+            <p className="empty-summary">Aucun produit sélectionné.</p>
           )}
 
           <div className="summary-totals">

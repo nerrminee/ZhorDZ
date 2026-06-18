@@ -15,13 +15,13 @@ function AdminLogin() {
     if (res.ok) {
       window.location.href = '/admin'
     } else {
-      setError(res.message || 'Login failed')
+      setError(res.message || 'Échec de la connexion')
     }
   }
 
   return (
     <div className="admin-login">
-      <section className="admin-login-hero" aria-label="ZHOR admin sign in">
+      <section className="admin-login-hero" aria-label="Connexion administrateur ZHOR">
         <div className="admin-login-media" aria-hidden="true">
           <img src={backgroundImage} alt="" />
         </div>
@@ -32,32 +32,32 @@ function AdminLogin() {
         </div>
 
         <div className="admin-login-copy">
-          <p>Atelier prive</p>
+          <p>Atelier privé</p>
           <h1>Console</h1>
-          <span>Manage products, orders, and boutique details with the same calm precision as the storefront.</span>
+          <span>Gérez les produits, les commandes et les détails de la boutique avec la même précision sereine que la vitrine.</span>
         </div>
 
         <div className="card admin-login-panel">
-          <span className="admin-eyebrow">Secure access</span>
-          <h2>Admin Login</h2>
+          <span className="admin-eyebrow">Accès sécurisé</span>
+          <h2>Connexion Admin</h2>
           <form onSubmit={handleSubmit}>
             <label>
-              Username
+              Nom d'utilisateur
               <input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
+                placeholder="Entrez le nom d'utilisateur"
                 autoComplete="username"
               />
             </label>
 
             <label>
-              Password
+              Mot de passe
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
+                placeholder="Entrez le mot de passe"
                 autoComplete="current-password"
               />
             </label>
@@ -65,10 +65,10 @@ function AdminLogin() {
             {error ? <p className="admin-login-error">{error}</p> : null}
 
             <div className="actions">
-              <button className="hero-button" type="submit">Enter console</button>
+              <button className="hero-button" type="submit">Entrer dans la console</button>
             </div>
           </form>
-          <a className="admin-login-store-link" href="/">Back to boutique</a>
+          <a className="admin-login-store-link" href="/">Retour à la boutique</a>
         </div>
       </section>
     </div>
