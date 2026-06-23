@@ -248,7 +248,7 @@ export default function AdminPanel({ onLogout }) {
       setImageUrlInput('')
       setImagePreviews([])
       setUploadProgress(0)
-      showAlert('success', '🎉 Product saved to Firestore successfully.')
+      showAlert('success', '🎉 Product saved successfully.')
     } catch (error) {
       console.error('Failed to save product:', error)
       showAlert('error', `Failed to save product: ${error.message}`)
@@ -725,7 +725,7 @@ export default function AdminPanel({ onLogout }) {
                   <div className="progress-bar-fill" style={{ width: `${uploadProgress}%` }} />
                 </div>
                 <div className="progress-text">
-                  {uploadProgress === 0 ? 'Connecting to Firebase...' : `Uploading: ${uploadProgress}%`}
+                  {uploadProgress === 0 ? 'Saving product...' : `Uploading: ${uploadProgress}%`}
                 </div>
               </div>
             )}

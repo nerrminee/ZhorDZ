@@ -48,6 +48,6 @@ export default async function handler(req, res) {
 
     sendJson(res, 405, { error: 'Method not allowed' })
   } catch (error) {
-    handleError(res, error)
+    handleError(req, res, error)
   }
 }

@@ -1,24 +1,9 @@
+import { requestJson } from './apiClient.js'
+
 const CLOUDINARY_CLOUD_NAME = 'djw220fcf'
 const CLOUDINARY_UPLOAD_PRESET = 'zhordz'
 const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`
 const PRODUCTS_API = '/api/products'
-
-async function requestJson(url, options = {}) {
-  const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-    ...options,
-  })
-  const data = await response.json().catch(() => ({}))
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Request failed')
-  }
-
-  return data
-}
 
 export function createProductSlug(name = '') {
   return String(name)
@@ -47,6 +32,12 @@ export async function uploadImage(file, onProgress) {
   const data = await response.json()
 
   if (!response.ok) {
+    console.error('[api] Request failed', {
+      url: CLOUDINARY_UPLOAD_URL,
+      method: 'POST',
+      status: response.status,
+      responseBody: data,
+    })
     throw new Error(data.error?.message || 'Cloudinary upload failed')
   }
 

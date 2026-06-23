@@ -1,15 +1,32 @@
+import 'dotenv/config'
 import { MongoClient, ObjectId } from 'mongodb'
 
-const uri = process.env.MONGODB_URI
+const MONGODB_URI_ENV = 'MONGODB_URI'
 const dbName = process.env.MONGODB_DB || 'zhordz'
 
 let cachedClient
 let cachedDb
 
-export async function getDb() {
+export function validateMongoEnv() {
+  const uri = process.env[MONGODB_URI_ENV]
+
   if (!uri) {
-    throw new Error('Missing MONGODB_URI environment variable')
+    const error = new Error(
+      [
+        `Missing ${MONGODB_URI_ENV} environment variable.`,
+        `Create a .env file in ${process.cwd()} with ${MONGODB_URI_ENV}=<your MongoDB Atlas connection string>.`,
+      ].join(' '),
+    )
+    error.code = `MISSING_${MONGODB_URI_ENV}`
+    console.error(`[config] ${error.message}`)
+    throw error
   }
+
+  return uri
+}
+
+export async function getDb() {
+  const uri = validateMongoEnv()
 
   if (cachedDb) return cachedDb
 
@@ -56,9 +73,24 @@ export function sendJson(res, statusCode, data) {
   res.end(JSON.stringify(data))
 }
 
-export function handleError(res, error) {
-  console.error(error)
-  sendJson(res, error.statusCode || 500, {
+export function handleError(req, res, error) {
+  const statusCode = error.statusCode || 500
+  const stackLines = error.stack ? error.stack.split('\n').map((line) => line.trim()) : []
+
+  console.error('[api] Request failed', {
+    method: req.method,
+    url: req.originalUrl || req.url,
+    statusCode,
+    message: error.message,
+    code: error.code,
+    stack: error.stack,
+  })
+
+  sendJson(res, statusCode, {
     error: error.message || 'Server error',
+    code: error.code || 'SERVER_ERROR',
+    method: req.method,
+    url: req.originalUrl || req.url,
+    stack: stackLines,
   })
 }
