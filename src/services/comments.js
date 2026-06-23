@@ -1,4 +1,4 @@
-const ORDERS_API = '/api/orders'
+const COMMENTS_API = '/api/comments'
 
 async function requestJson(url, options = {}) {
   const response = await fetch(url, {
@@ -17,23 +17,28 @@ async function requestJson(url, options = {}) {
   return data
 }
 
-export async function addOrder(orderData) {
-  return requestJson(ORDERS_API, {
+export const addComment = async (client, message) => {
+  return requestJson(COMMENTS_API, {
     method: 'POST',
-    body: JSON.stringify(orderData),
+    body: JSON.stringify({
+      clientId: client.uid || client.id,
+      clientName: client.displayName || client.name || client.email || 'Client',
+      email: client.email,
+      message,
+    }),
   })
 }
 
-export function subscribeOrders(cb) {
+export const subscribeComments = (callback) => {
   let isActive = true
   let timeoutId
 
   const load = async () => {
     try {
-      const orders = await requestJson(ORDERS_API)
-      if (isActive) cb(orders)
+      const comments = await requestJson(COMMENTS_API)
+      if (isActive) callback(comments)
     } catch (error) {
-      console.error('Failed to load orders:', error)
+      console.error('Error loading comments:', error)
     } finally {
       if (isActive) timeoutId = window.setTimeout(load, 5000)
     }
@@ -47,9 +52,8 @@ export function subscribeOrders(cb) {
   }
 }
 
-export async function deleteOrder(orderId) {
-  await requestJson(`${ORDERS_API}?id=${encodeURIComponent(orderId)}`, {
+export const deleteComment = async (commentId) => {
+  await requestJson(`${COMMENTS_API}?id=${encodeURIComponent(commentId)}`, {
     method: 'DELETE',
   })
-  return orderId
 }

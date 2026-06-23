@@ -34,7 +34,7 @@ function AdminLogin() {
         <div className="admin-login-copy">
           <p>Atelier privé</p>
           <h1>Console</h1>
-          <span>Gérez les produits, les commandes et les détails de la boutique avec la même précision sereine que la vitrine.</span>
+          <span>Gérez les produits, les commandes, les clients et les détails de la boutique avec la même précision sereine que la vitrine.</span>
         </div>
 
         <div className="card admin-login-panel">

@@ -10,7 +10,11 @@ import Collection from './pages/Collection'
 import Liked from './pages/Liked'
 import ProductDetail from './pages/ProductDetail'
 import AdminOrders from './pages/AdminOrders'
+import AdminCommentsPage from './pages/AdminCommentsPage'
+import AdminClients from './pages/AdminClients'
 import Search from './pages/Search'
+import ClientAccount from './pages/ClientAccount'
+import CommentsSection from './components/CommentsSection'
 import { subscribeProducts } from './services/products'
 import backgroundImage from './assets/backgroud.jpg'
 import { getProductImages } from './utils/productOptions'
@@ -100,7 +104,7 @@ function App() {
 
   // Determine if current route is home
   const isHome = !productSlug && ![
-    '/boutique', '/panier', '/checkout', '/liked', '/contact', '/collection', '/search'
+    '/boutique', '/panier', '/checkout', '/liked', '/contact', '/collection', '/search', '/compte'
   ].includes(path) && !path.startsWith('/admin')
 
   // Filter sold products for the home page bottom section
@@ -164,8 +168,8 @@ function App() {
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"></path></svg>
                 </a>
                 
-                {/* Admin / Login */}
-                <a className="p-2 -mr-2 md:mr-0 hover:text-[#c6a77d] transition-colors" href="/admin/login" onClick={(e) => navigateTo('/admin/login', e)} aria-label="Profil Admin">
+                {/* Client account */}
+                <a className="p-2 -mr-2 md:mr-0 hover:text-[#c6a77d] transition-colors" href="/compte" onClick={(e) => navigateTo('/compte', e)} aria-label="Compte client">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 </a>
                 
@@ -259,6 +263,8 @@ function App() {
             <Collection />
           ) : path === '/search' ? (
             <Search />
+          ) : path === '/compte' ? (
+            <ClientAccount />
           ) : (
             <main className="relative min-h-screen">
               
@@ -497,6 +503,8 @@ function App() {
                 </section>
               )}
 
+              <CommentsSection />
+
             </main>
           )}
 
@@ -544,6 +552,10 @@ function App() {
         <Admin />
       ) : path === '/admin/orders' ? (
         <AdminOrders />
+      ) : path === '/admin/comments' ? (
+        <AdminCommentsPage />
+      ) : path === '/admin/clients' ? (
+        <AdminClients />
       ) : path === '/admin/login' ? (
         <AdminLogin />
       ) : null}

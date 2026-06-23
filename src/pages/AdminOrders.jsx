@@ -79,6 +79,8 @@ function AdminOrders() {
         </div>
         <div className="admin-header-actions">
           <a className="edit-btn" href="/admin">Produits</a>
+          <a className="edit-btn" href="/admin/comments">Commentaires</a>
+          <a className="edit-btn" href="/admin/clients">Clients</a>
           <a className="cancel-btn" href="/">Voir la boutique</a>
           <button type="button" onClick={logout} className="cancel-btn">Déconnexion</button>
         </div>

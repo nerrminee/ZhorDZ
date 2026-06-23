@@ -354,6 +354,8 @@ export default function AdminPanel({ onLogout }) {
         </div>
         <div className="admin-header-actions">
           <a href="/admin/orders" className="edit-btn">📋 Orders</a>
+          <a href="/admin/comments" className="edit-btn">Commentaires</a>
+          <a href="/admin/clients" className="edit-btn">Clients</a>
           <a href="/" className="cancel-btn">👁️ View store</a>
           {onLogout ? (
             <button type="button" onClick={onLogout} className="cancel-btn">🚪 Logout</button>

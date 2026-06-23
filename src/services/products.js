@@ -1,11 +1,24 @@
-import { db, storage } from '../config/firebase'
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore'
-import { ref, deleteObject } from 'firebase/storage'
-
-const PRODUCTS_COLL = 'products'
 const CLOUDINARY_CLOUD_NAME = 'djw220fcf'
 const CLOUDINARY_UPLOAD_PRESET = 'zhordz'
 const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`
+const PRODUCTS_API = '/api/products'
+
+async function requestJson(url, options = {}) {
+  const response = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+    ...options,
+  })
+  const data = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Request failed')
+  }
+
+  return data
+}
 
 export function createProductSlug(name = '') {
   return String(name)
@@ -165,21 +178,20 @@ export async function addProduct(productData) {
     image_url: primaryImage.url,
     imageUrl: primaryImage.url,
     imagePath: primaryImage.path,
-    createdAt: serverTimestamp(),
     isPublished: !!isPublished,
   }
 
-  const docRef = await addDoc(collection(db, PRODUCTS_COLL), payload)
-  return { id: docRef.id, ...payload }
+  return requestJson(PRODUCTS_API, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
 }
 
 export async function getProducts() {
-  const q = query(collection(db, PRODUCTS_COLL), orderBy('createdAt', 'desc'))
-  const snap = await getDocs(q)
-  return snap.docs.map((d) => {
-    const data = d.data()
+  const products = await requestJson(PRODUCTS_API)
+  return products.map((data) => {
     return {
-      id: d.id,
+      id: data.id,
       ...data,
       name: data.name || data.title || '',
       description: data.description || '',
@@ -208,44 +220,29 @@ export async function getProducts() {
 }
 
 export function subscribeProducts(cb) {
-  const q = query(collection(db, PRODUCTS_COLL), orderBy('createdAt', 'desc'))
-  const unsub = onSnapshot(q, (snap) => {
-    const docs = snap.docs.map((d) => {
-      const data = d.data()
-      return {
-        id: d.id,
-        ...data,
-        name: data.name || data.title || '',
-        description: data.description || '',
-        detailDescription: data.detailDescription || data.details || '',
-        category: data.category || '',
-        productCategory: data.productCategory || data.type || '',
-        sku: data.sku || '',
-        fabric: data.fabric || '',
-        care: data.care || '',
-        slug: data.slug || createProductSlug(data.name || data.title || ''),
-        price: data.price || 0,
-        isSale: data.isSale ?? false,
-        oldPrice: data.oldPrice || 0,
-        imageUrl: data.imageUrl || data.image_url || null,
-        image_url: data.image_url || data.imageUrl || null,
-        imagePath: data.imagePath || null,
-        images: normalizeImages(data),
-        createdAt: data.createdAt || null,
-        sizes: Array.isArray(data.sizes) ? data.sizes : [],
-        colors: Array.isArray(data.colors) ? data.colors : [],
-        availability: data.availability || ((data.isInStock ?? true) ? 'in-stock' : 'rupture'),
-        isInStock: data.isInStock ?? (data.availability !== 'rupture'),
-        isPublished: data.isPublished ?? data.published ?? false,
-      }
-    })
-    cb(docs)
-  })
-  return unsub
+  let isActive = true
+  let timeoutId
+
+  const load = async () => {
+    try {
+      const products = await getProducts()
+      if (isActive) cb(products)
+    } catch (error) {
+      console.error('Failed to load products:', error)
+    } finally {
+      if (isActive) timeoutId = window.setTimeout(load, 5000)
+    }
+  }
+
+  load()
+
+  return () => {
+    isActive = false
+    if (timeoutId) window.clearTimeout(timeoutId)
+  }
 }
 
 export async function updateProduct(id, updates = {}) {
-  const docRef = doc(db, PRODUCTS_COLL, id)
   const { file, files = [], removeImage, price } = updates
   const toUpdate = { ...updates }
 
@@ -301,20 +298,15 @@ export async function updateProduct(id, updates = {}) {
   delete toUpdate.removeImage
   delete toUpdate.imageUrls
 
-  await updateDoc(docRef, toUpdate)
-  return { id, ...toUpdate }
+  return requestJson(`${PRODUCTS_API}?id=${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(toUpdate),
+  })
 }
 
-export async function deleteProduct(id, imagePath) {
-  const imagePaths = Array.isArray(imagePath) ? imagePath.filter(Boolean) : imagePath ? [imagePath] : []
-
-  for (const path of imagePaths) {
-    try {
-      const storageRef = ref(storage, path)
-      await deleteObject(storageRef)
-    } catch (e) {
-      console.warn('deleteProduct: failed deleting image', e.message)
-    }
-  }
-  await deleteDoc(doc(db, PRODUCTS_COLL, id))
+export async function deleteProduct(id) {
+  await requestJson(`${PRODUCTS_API}?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  })
+  return id
 }
