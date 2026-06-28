@@ -1,76 +1,49 @@
-import { createRequire } from 'node:module'
-
-const require = createRequire(import.meta.url)
-require('dotenv').config()
-
-const [
-  { default: express },
-  { default: cors },
-  { default: mongoose },
-  { default: clientsHandler },
-  { default: productsHandler },
-  { default: commentsHandler },
-  { default: ordersHandler },
-  { validateMongoEnv },
-] = await Promise.all([
-  import('express'),
-  import('cors'),
-  import('mongoose'),
-  import('./api/clients.js'),
-  import('./api/products.js'),
-  import('./api/comments.js'),
-  import('./api/orders.js'),
-  import('./api/_mongo.js'),
-])
+import 'dotenv/config'
+import express from 'express'
+import cors from 'cors'
+import { connectToDatabase } from './api/config/db.js'
+import { authenticate } from './api/middleware/auth.js'
+import { errorHandler } from './api/middleware/errorHandler.js'
+import authRoutes from './api/routes/authRoutes.js'
+import clientRoutes from './api/routes/clientRoutes.js'
+import productRoutes from './api/routes/productRoutes.js'
+import commentRoutes from './api/routes/commentRoutes.js'
+import orderRoutes from './api/routes/orderRoutes.js'
 
 const app = express()
 const PORT = process.env.PORT || 5000
 
-// Middleware
 app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: '2mb' }))
 app.use(express.urlencoded({ extended: true }))
 
-// Logger middleware
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.originalUrl}`)
   next()
 })
 
-// Route mappings to Vercel serverless handlers
-app.all('/api/clients', (req, res) => clientsHandler(req, res))
-app.all('/api/products', (req, res) => productsHandler(req, res))
-app.all('/api/comments', (req, res) => commentsHandler(req, res))
-app.all('/api/orders', (req, res) => ordersHandler(req, res))
+app.use(authenticate)
 
-// Add a health check route
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req, res) => {
   res.status(200).json({ status: 'OK', message: 'ZhorDZ API Server is running' })
 })
 
-// Catch-all 404 for api
-app.use('/api', (req, res) => {
-  res.status(404).json({ error: `Route ${req.originalUrl} not found` })
+app.use('/api/auth', authRoutes)
+app.use('/api/clients', clientRoutes)
+app.use('/api/products', productRoutes)
+app.use('/api/comments', commentRoutes)
+app.use('/api/orders', orderRoutes)
+
+app.use('/api', (_req, res) => {
+  res.status(404).json({ error: 'Route not found', code: 'NOT_FOUND' })
 })
 
-// Connect to MongoDB using Mongoose and start server
+app.use(errorHandler)
+
 async function startServer() {
-  let mongoUri
-
   try {
-    mongoUri = validateMongoEnv()
-  } catch {
-    process.exit(1)
-  }
-
-  try {
-    console.log('Connecting to MongoDB via Mongoose...')
-    await mongoose.connect(mongoUri, {
-      dbName: process.env.MONGODB_DB || 'zhordz',
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 5000,
-    })
-    console.log('Successfully connected to MongoDB via Mongoose!')
+    await connectToDatabase()
+    console.log('MongoDB connection established')
 
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`)
@@ -78,11 +51,8 @@ async function startServer() {
     })
   } catch (error) {
     console.error('Database connection failed:', error)
-    // Don't crash immediately in local dev if MongoDB Atlas is timing out, so Vite proxy won't break entirely,
-    // but log it heavily.
     app.listen(PORT, () => {
-      console.log(`Server started on port ${PORT} with DB CONNECTION FAILURE.`)
-      console.log('Please ensure your IP is whitelisted on MongoDB Atlas.')
+      console.log(`Server started on port ${PORT} with DB connection failure.`)
     })
   }
 }
